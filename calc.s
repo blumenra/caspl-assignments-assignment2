@@ -22,25 +22,39 @@ section .rodata
 
 section .bss
     input: resb 80
+    stack: resb 4*STACK_CAPACITY
 
 
 section .data
-    ;stack_capacity: DD 5
+    stack_counter: DD 0
 
 
 section .text 
     align 16 
     global main 
 
-main: 
-  
+main:
+
+    push ebp
+    mov ebp, esp
+    
+    pushad
+    pushfd
+
+
     call my_calc
     
+    popfd
+    popad
+
+    mov esp, ebp    ; return esp to its original place in the beginning of main
+    pop ebp         ; pop ebp because we pushed it at the beginning of main
 
     push 0            ; return value of exit
     call exit
 
     ret
+
 
 my_calc:
     
