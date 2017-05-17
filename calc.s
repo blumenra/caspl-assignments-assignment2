@@ -26,6 +26,14 @@ main:
   
     call my_calc
     
+
+    push 0            ; return value of exit
+    call exit
+
+    ret
+
+my_calc:
+    
     pushad
     pushfd
 
@@ -50,15 +58,9 @@ main:
     push input
     push format
     call printf
+    add esp, 8  
   
     popfd
     popad
-
-    push 0            ; return value of exit
-    call exit
-
-    ret
-
-my_calc:
 
     ret
