@@ -1,0 +1,21 @@
+
+- create a label 'stack'
+- initialize the first 4 bytes (the address that points to the first argument in the stack) with null (0)
+- convert each 2 bytes from the input to BCD
+	handle wierd inputs such as 001 (zeros in the begining)
+- create strings for errors int the .rodata
+- create a constant to save 5 (maximum size of stack)
+- create a counter that will track on the stack size
+- create a loop in my_calc which waits for input, do something and them go back in a loop to get an input again (use fgets). this prints ">>calc: "
+- create a variable for debug mode
+- write tests
+- create a label that loops for getting two numbers (12 for example) and create a link from then and caocatenate the link to the adequate list by:
+	check if there is enough space in the stack. if not, send an error.
+	else:
+	use mallok to make space on the heap for the link (5 byets)
+	store somewhere the address of the link that is now in the heap
+	the new link will point on the link that the list points on (the address on the stack)
+	the list will point on the new link (which we have stored its address beforehand)
+
+- imlplement feature d 
+- imlplement feature p (prints ">>" instaed of ">>calc")
