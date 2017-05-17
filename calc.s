@@ -12,6 +12,9 @@ extern fopen
 section .rodata
     str: DB "Hello World", 0
     format: DB "%s", 10, 0
+    error_overflow: DB "Error: Operand Stack Overflow", 0
+    error_insufficient: DB "Error: Insufficient Number of Arguments on Stack", 0
+    error_expTooLarge: DB "Error: exponent too large", 0
 
 
 section .bss

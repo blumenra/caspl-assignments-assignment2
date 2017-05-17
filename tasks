@@ -1,4 +1,5 @@
-- create strings for errors int the .rodata
+;;- create strings for errors int the .rodata
+
 - create a constant to save 5 (maximum size of stack)
 - create a counter that will track on the stack size
 - create a variable for debug mode
