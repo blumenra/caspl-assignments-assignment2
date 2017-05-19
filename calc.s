@@ -70,7 +70,6 @@ main:
 
     ret
 
-
 my_calc:
     
     pushad
@@ -101,28 +100,18 @@ my_calc:
             call fgets
             add esp, 12  
         
-
         ;handle input
             cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
             je prompt
 
-
-
-            call check_special_commands  ;check if the input is a special command such as 'p', '+' etc.
+            call check_special_commands ;check if the input is a special command such as 'p', '+' etc.
             cmp eax, 0
-            jne handle_special_command
+            jne handle_special_command   
 
+            call handle_numeric_input   ;if it is an numeric input, jump to the label that handles it
+            
+            jmp prompt                  ;go back to prompt and start over again
 
-        jmp handle_numeric_input
-
-
-        mov esi, [stack]
-        ;mov edx, 0
-        mov esi, dword [esi+1]
-        push esi
-        push format_strln
-        call printf
-        add esp, 8
 
     ;****
     mov esp, ebp
@@ -131,7 +120,6 @@ my_calc:
     popad
 
     ret
-
 
 add_to_curr_list:
     push ebp
@@ -166,7 +154,6 @@ add_to_curr_list:
     pop ebp
 
     ret    
-
 
 push_stack:
     push ebp
@@ -205,7 +192,13 @@ pop_stack:
     ret
 
 handle_numeric_input:
-    
+    pushad
+    pushfd
+    push ebp
+    mov ebp, esp
+    ;****
+
+
     ; check if stack is not full. then start getting the first input (e.g 123456)
         cmp dword [stack_counter], STACK_CAPACITY   ; if the stack is full, return without doing anything (eax = 0)
         je print_stack_full_error
@@ -296,9 +289,15 @@ handle_numeric_input:
         push dword [curr_list]
         call push_stack
         add esp, 4
+    
 
-    jmp prompt
+    ;****
+    mov esp, ebp
+    pop ebp
+    popfd
+    popad
 
+    ret
 
 handle_special_command:
     push str
@@ -356,7 +355,6 @@ check_special_commands:
     pop ebp
 
     ret
-
 
 check_special_command:
     push ebp
@@ -424,7 +422,6 @@ clean_input_buffer:
 
     ret
 
-
 print_stack_full_error:
     push error_overflow
     push format_strln
@@ -432,8 +429,6 @@ print_stack_full_error:
     add esp, 8
 
     jmp fail_exit
-
-
 
 func_format:
     pushad
@@ -455,7 +450,6 @@ func_format:
 
     ret
 
-
 print_for_myself:
     ;////////////////
     push str
@@ -463,7 +457,6 @@ print_for_myself:
     call printf
     add esp, 8
     ;////////////////
-
 
 fail_exit:
     push fail_exit_msg
