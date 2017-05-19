@@ -113,103 +113,8 @@ my_calc:
             jne handle_special_command
 
 
-        ;handle numeric input
-            ; check if stack is not full. then start getting the first input (e.g 123456)
-                
-                cmp dword [stack_counter], STACK_CAPACITY   ; if the stack is full, return without doing anything (eax = 0)
-                je print_stack_full_error
+        jmp handle_numeric_input
 
-            ;find input length
-                mov ecx, 1                      ;use ecx as counter for the length of the input
-                loop1:
-                    cmp byte [input+ecx], 10
-                    je end_loop1
-                    inc ecx
-                    jmp loop1
-
-                end_loop1:
-                    mov dword [input_len], ecx
-
-
-            ;start linking pairs from input
-            mov ebx, dword [input_len]
-            dec ebx
-            mov dword [input_counter], ebx
-
-
-
-            for_input:
-
-                mov ecx, 0
-                mov edx, 0
-
-                cmp dword [input_counter], 0
-                jl end_for_input
-
-                
-
-
-                cmp dword [input_counter], 0
-                je cl_get_zero
-
-                ; convert to BCD: 01110000 (7) OR 00000011 (3) => 01110011 (0x73)
-                ; the following method assumes input correctness (meaning, only numbers and special commands)!!
-                    mov ebx, dword [input_counter]
-                    mov dl, byte [input+ebx]
-                    dec ebx
-                    mov dword [input_counter], ebx
-                    mov cl, byte [input+ebx]
-                    jmp continue_for_input
-
-                cl_get_zero:
-                    mov ebx, dword [input_counter]
-                    mov dl, byte [input+ebx]
-                    mov cl, 0
-                    mov dword [input_counter], ebx
-
-                continue_for_input:
-                    shl cl, 4
-                    or cl, dl
-                
-                dec ebx
-                mov dword [input_counter], ebx
-
-                mov [bcd_num], cl           ;save the converted BCD number (malloc messes up register ecx apparently)
-
-
-                ;////////////////
-                ;mov eax, 0
-                ;mov al, bcd_num
-                ;push bcd_num
-                ;push format_strln
-                ;call printf
-                ;add esp, 8
-                ;////////////////
-
-
-                push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
-                call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
-                test eax, eax
-                jz   fail_exit
-                add esp,4                   ;undo push for malloc
-         
-                mov cl, [bcd_num]           ;assign the first byte with the bcd number
-                mov byte [eax], cl
-                mov dword [eax+1], 0        ;assign the rest 4 bytes with address 0
-
-                push eax                    ;send the address saved in eax to push_stack as argument
-                call add_to_curr_list
-                add esp, 4
-
-                jmp for_input
-
-            end_for_input:
-                
-                push dword [curr_list]
-                call push_stack
-                add esp, 4
-
-            jmp prompt
 
         mov esi, [stack]
         ;mov edx, 0
@@ -281,6 +186,118 @@ push_stack:
     pop ebp
 
     ret
+
+pop_stack:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    mov ebx, dword [stack_counter]
+    dec ebx
+
+    mov eax, dword [stack+4*ebx]
+    mov dword [stack+4*ebx], 0
+
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+handle_numeric_input:
+    
+    ; check if stack is not full. then start getting the first input (e.g 123456)
+        cmp dword [stack_counter], STACK_CAPACITY   ; if the stack is full, return without doing anything (eax = 0)
+        je print_stack_full_error
+
+    ;find input length
+        mov ecx, 1                      ;use ecx as counter for the length of the input
+        loop1:
+            cmp byte [input+ecx], 10
+            je end_loop1
+            inc ecx
+            jmp loop1
+
+        end_loop1:
+            mov dword [input_len], ecx
+
+
+    ;start linking pairs from input
+        mov ebx, dword [input_len]
+        dec ebx
+        mov dword [input_counter], ebx
+
+
+        for_input:
+
+            mov ecx, 0
+            mov edx, 0
+
+            cmp dword [input_counter], 0
+            jl end_for_input
+
+            cmp dword [input_counter], 0
+            je cl_get_zero
+
+            ; convert to BCD: 01110000 (7) OR 00000011 (3) => 01110011 (0x73)
+            ; the following method assumes input correctness (meaning, only numbers and special commands)!!
+                mov ebx, dword [input_counter]
+                mov dl, byte [input+ebx]
+                dec ebx
+                mov dword [input_counter], ebx
+                mov cl, byte [input+ebx]
+                jmp continue_for_input
+
+            cl_get_zero:
+                mov ebx, dword [input_counter]
+                mov dl, byte [input+ebx]
+                mov cl, 0
+                mov dword [input_counter], ebx
+
+            continue_for_input:
+                shl cl, 4
+                or cl, dl
+            
+            dec ebx
+            mov dword [input_counter], ebx
+
+            mov [bcd_num], cl           ;save the converted BCD number (malloc messes up register ecx apparently)
+
+
+            ;////////////////
+            ;mov eax, 0
+            ;mov al, bcd_num
+            ;push bcd_num
+            ;push format_strln
+            ;call printf
+            ;add esp, 8
+            ;////////////////
+
+
+            push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
+            call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
+            test eax, eax
+            jz   fail_exit
+            add esp,4                   ;undo push for malloc
+     
+            mov cl, [bcd_num]           ;assign the first byte with the bcd number
+            mov byte [eax], cl
+            mov dword [eax+1], 0        ;assign the rest 4 bytes with address 0
+
+            push eax                    ;send the address saved in eax to push_stack as argument
+            call add_to_curr_list
+            add esp, 4
+
+            jmp for_input
+
+    end_for_input:
+    
+    ;push the address of the new list to stack
+        push dword [curr_list]
+        call push_stack
+        add esp, 4
+
+    jmp prompt
 
 
 handle_special_command:
