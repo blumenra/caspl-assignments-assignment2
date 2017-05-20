@@ -22,6 +22,7 @@ section .rodata
     error_expTooLarge: DB "Error: exponent too large", 0
     fail_exit_msg: DB "Exiting...", 0
     prompt_arrow: DB ">>calc: ", 0
+    debug_flag: DB "-d", 0
     sp_p: DB "p", 0
     sp_plus: DB "+", 0
     sp_r: DB "r", 0
@@ -53,15 +54,29 @@ main:
     push ebp
     mov ebp, esp
 
-    mov esi, dword [ebp+12]
-    
-    mov debug, 1
+    mov esi, dword [ebp+12]         ;save in esi the first arg from the cmd
 
-    ;push dword [esi+4]
-    ;push format_strln
-    ;call printf
-    ;add esp, 8
+    cmp dword [esi+4], 0            ;check if there was any agr from cmd
+    je cont_main                    ;if not, do not touch the debug variable
+
+    ;compare the cmd arg and the string "-d"
+        push dword [esi+4]          ;send as second arg the cmd arg to cmp_str
+        push debug_flag             ;send as first arg the string "-d" to cmp_str
+        call cmp_str
+        add esp, 8
+        cmp eax, 0                  ;check the strings were equal
+        je cont_main                ;if not, do not touch the debug variable
+
+    mov dword [debug], 1            ;change the debug variable to 1 because the debug falg was sent from cmd
+
     
+    cont_main:
+    
+    push dword [debug]
+    push format_int
+    call printf
+    add esp, 8
+
     pushad
     pushfd
 
@@ -69,17 +84,17 @@ main:
     call my_calc
     
     ;print the number of successfuk operations returned from my_calc
-    ;////////////////
-    push eax
-    push format_int
-    call printf
-    add esp, 8
+        ;////////////////
+        push eax
+        push format_int
+        call printf
+        add esp, 8
 
-    push str_newlinw
-    push format_strln
-    call printf
-    add esp, 8
-    ;////////////////
+        push str_newlinw
+        push format_strln
+        call printf
+        add esp, 8
+        ;////////////////
     
     popfd
     popad
@@ -133,11 +148,11 @@ my_calc:
             je prompt
 
             ;check if "q"
-            push sp_q
-            call check_special_command
-            add esp, 4                      ;restore esp position
-            cmp eax, 0
-            jne end_my_calc
+                push sp_q
+                call check_special_command
+                add esp, 4                      ;restore esp position
+                cmp eax, 0
+                jne end_my_calc
             
 
             call check_sp_commands
@@ -474,35 +489,10 @@ check_special_command:
     mov ebp, esp
     ;****
 
-    mov eax, 0                          ;initialize return value with 0
-    mov esi, dword [ebp+8]              ; put in esi the argument (sp command address)
-
-    mov ecx, 0                          ;define ecx as index for the loop
-
-    for_:
-        cmp byte [esi+ecx], 0
-        je final_check
-        mov bl, byte [esi+ecx]
-        cmp byte [input+ecx], bl
-        jne not_sp
-        inc ecx
-        jmp for_
-
-
-    final_check:
-        cmp byte [input+ecx], 10
-        je is_sp
-        jmp not_sp
-
-    is_sp:
-        mov eax, esi
-        jmp end_for_
-
-    not_sp:
-        mov eax, 0
-
-    end_for_:
-
+    push input
+    push dword [ebp+8]
+    call cmp_str
+    add esp, 8
 
     ;****
     mov esp, ebp
@@ -515,10 +505,40 @@ cmp_str:
     mov ebp, esp
     ;****
 
+    mov eax, 0                          ;initialize return value with 0
+    mov esi, dword [ebp+8]              ; put in esi the argument (sp command address)
+    mov edi, dword [ebp+12]
+    mov ecx, 0                          ;define ecx as index for the loop
 
-    ;<func code>
-    ;mov eax, <return value>
-    
+    for_:
+        cmp byte [esi+ecx], 0
+        je final_check_1
+        mov bl, byte [esi+ecx]
+        cmp byte [edi+ecx], bl
+        jne not_sp
+        inc ecx
+        jmp for_
+
+
+    final_check_1:
+        cmp byte [edi+ecx], 10
+        je is_sp
+        jmp final_check_2
+
+    final_check_2:
+        cmp byte [edi+ecx], 0
+        je is_sp
+        jmp not_sp
+
+    is_sp:
+        mov eax, esi
+        jmp end_for_
+
+    not_sp:
+        mov eax, 0
+
+    end_for_:
+
 
     ;****
     mov esp, ebp
