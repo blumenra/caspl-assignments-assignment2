@@ -52,6 +52,15 @@ main:
 
     push ebp
     mov ebp, esp
+
+    mov esi, dword [ebp+12]
+    
+    mov debug, 1
+
+    ;push dword [esi+4]
+    ;push format_strln
+    ;call printf
+    ;add esp, 8
     
     pushad
     pushfd
@@ -493,6 +502,19 @@ check_special_command:
         mov eax, 0
 
     end_for_:
+
+
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+cmp_str:
+    push ebp
+    mov ebp, esp
+    ;****
+
 
     ;<func code>
     ;mov eax, <return value>
