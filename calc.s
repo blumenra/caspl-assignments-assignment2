@@ -78,9 +78,9 @@ main:
     pushfd
 
 
-    ;call my_calc
+    call my_calc
     
-    ;print the number of successfuk operations returned from my_calc
+    ;print the number of successful operations returned from my_calc
         ;////////////////
         push eax
         push format_int
@@ -141,52 +141,18 @@ my_calc:
             add esp, 12  
         
         ;debug check of input
-            cmp dword [debug], 1
-            jne end_debug_1
-
-            ;////////////////
-            section .data
-                debug_input_msg: DB "You entered %s", 0
-                debug_stack_size_msg: DB "Stack size is %d", 10, 0
-
-            section .text
-            
-                ;*print "You entered %s"
-                push print_arrow
-                push format_str
-                push dword [stderr]
-                call fprintf
-                add esp, 12
-
-                push input
-                push debug_input_msg
-                push dword [stderr]
-                call fprintf
-                add esp, 12
-                ;*
-
-                ;*print "Stack size is %d"
-                push print_arrow
-                push format_str
-                push dword [stderr]
-                call fprintf
-                add esp, 12
-
-                push dword [stack_counter]
-                push debug_stack_size_msg
-                push dword [stderr]
-                call fprintf
-                add esp, 12
-                ;*
-            ;////////////////
-
+            cmp dword [debug], 0
+            je end_debug_1
+            call debug_print_input
             end_debug_1:
 
 
-
         ;handle input
+            
             cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
+            
             je prompt
+            
 
             ;check if "q"
                 push sp_q
@@ -197,18 +163,32 @@ my_calc:
             
 
             call check_sp_commands
-            cmp eax, 1
-            jne handle_numeric
+            cmp eax, 0
+            je handle_numeric
 
             call handle_special_commands ;check if the input is a special command such as 'p', '+' etc.
             cmp eax, 1
             je inc_op_counter
 
+            ;debug
+                cmp dword [debug], 0
+                je end_debug_3
+                call print_stack_size
+                end_debug_3:
+
             jmp prompt
 
 
         handle_numeric:
+
             call handle_numeric_input   ;if it is an numeric input, jump to the label that handles it
+
+            ;debug
+                cmp dword [debug], 0
+                je end_debug_4
+                ;call print_stack_size
+                end_debug_4:
+
             cmp eax, 1
             jne prompt            
         
@@ -217,6 +197,11 @@ my_calc:
             inc ebx
             mov dword [ebp-4], ebx
 
+        ;debug
+            cmp dword [debug], 0
+            je end_debug_5
+            call print_stack_size
+            end_debug_5:
 
         jmp prompt                  ;go back to prompt and start over again
 
@@ -298,6 +283,11 @@ pop_stack:
     push ebp
     mov ebp, esp
     ;****
+    
+
+    ; check if stack is NOT empty.
+        cmp dword [stack_counter], 0   ; if the stack is full, print error and return 0 (inside the error label)
+        je print_stack_is_empty_error
 
     mov ebx, dword [stack_counter]
     dec ebx
@@ -306,6 +296,8 @@ pop_stack:
     mov dword [stack+4*ebx], 0      ;remove data from the previous top of the stack
 
     mov dword [stack_counter], ebx  ;decrease stack_counter by 1
+
+    return_pop_stack:
 
     ;****
     mov esp, ebp
@@ -415,6 +407,7 @@ check_sp_commands:
     cmp eax, 0                      ;check if the return value is not null
     jne return_check_sp_commands    ;if the return value is NOT 0, then eax contains the sp that was sent as an argument so return from the function
 
+
     push sp_plus
     call check_special_command
     add esp, 4                      ;restore esp position
@@ -452,6 +445,7 @@ handle_special_commands:
     push ebp
     mov ebp, esp
     ;****
+
 
 
     push sp_p                       ;send the string "p" as argument to compare with input
@@ -494,7 +488,10 @@ handle_special_commands:
 
 exec_sp_p:
     
+
     call pop_stack
+    cmp eax, 0
+    je return_check_sp_commands
 
     push eax                        ;send the return value from pop_stack (which is saved in eax) to print
     call print_num
@@ -542,10 +539,10 @@ print_num:
 
 
     ;////////////////
-    push str
-    push format_strln
-    call printf
-    add esp, 8
+    ;push str
+    ;push format_strln
+    ;call printf
+    ;add esp, 8
 
     ;push str_newlinw
     ;push format_str
@@ -569,9 +566,12 @@ check_special_command:
     mov ebp, esp
     ;****
 
+
+    
     push input
     push dword [ebp+8]
     call cmp_str
+
     add esp, 8
 
     ;****
@@ -648,18 +648,40 @@ clean_input_buffer:
 
     ret
 
-print_stack_full_error:
-    push error_overflow
+print_stack_is_empty_error:
+
+    pushad
+    pushfd
+    
+    push error_insufficient
     push format_strln
     call printf
     add esp, 8
 
+    popfd
+    popad
+    
     mov eax, 0
+    jmp return_pop_stack
+
+print_stack_full_error:
+    pushad
+    pushfd
+
+    push error_overflow
+    push format_strln
+    call printf
+    add esp, 8
+    
+    popfd
+    popad
+
+    mov eax, 0
+
+
     jmp return_push_stack
 
 func_format:
-    pushad
-    pushfd
     push ebp
     mov ebp, esp
     ;****
@@ -672,18 +694,30 @@ func_format:
     ;****
     mov esp, ebp
     pop ebp
-    popfd
-    popad
 
     ret
 
 print_for_myself:
+    pushad
+    pushfd
+    push ebp
+    mov ebp, esp
+    ;****
+
     ;////////////////
     push str
     push format_strln
     call printf
     add esp, 8
     ;////////////////
+
+    ;****
+    mov esp, ebp
+    pop ebp
+    popfd
+    popad
+
+    ret
 
 fail_exit:
     push fail_exit_msg
@@ -693,6 +727,72 @@ fail_exit:
 
     push 0
     call exit
+
+debug_print_input:
+    pushad
+    pushfd
+    push ebp
+    mov ebp, esp
+    ;****
+
+    section .data
+        debug_input_msg: DB "You entered %s", 0
+
+    section .text
+        ;*print "You entered %s"
+        push print_arrow
+        push format_str
+        push dword [stderr]
+        call fprintf
+        add esp, 12
+
+        push input
+        push debug_input_msg
+        push dword [stderr]
+        call fprintf
+        add esp, 12
+        ;*
+
+    ;****
+    mov esp, ebp
+    pop ebp
+    popfd
+    popad
+
+    ret
+
+print_stack_size:
+    pushad
+    pushfd
+    push ebp
+    mov ebp, esp
+    ;****
+    
+    section .data
+        debug_stack_size_msg: DB "Stack size is %d", 10, 0
+    
+    section .text
+        ;*print "Stack size is %d"
+        push print_arrow
+        push format_str
+        push dword [stderr]
+        call fprintf
+        add esp, 12
+
+        push dword [stack_counter]
+        push debug_stack_size_msg
+        push dword [stderr]
+        call fprintf
+        add esp, 12
+        ;*
+    
+    ;****
+    mov esp, ebp
+    pop ebp
+    popfd
+    popad
+
+    ret
 
 debug_print_format:
     ;**************

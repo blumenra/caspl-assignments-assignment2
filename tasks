@@ -29,3 +29,8 @@
 - free mempry of all links
 - imlplement feature d 
 - imlplement feature p (prints ">>" instaed of ">>calc")
+
+
+;----
+call print_for_myself
+;----
