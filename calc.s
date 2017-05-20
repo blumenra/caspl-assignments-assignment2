@@ -12,6 +12,7 @@ extern fopen
 STACK_CAPACITY: equ 5
 
 section .rodata
+    str_newlinw: DB  0
     str: DB "Hello World", 0
     format_strln: DB "%s", 10, 0
     format_str: DB "%s", 0
@@ -60,10 +61,15 @@ main:
     
     ;print the number of successfuk operations returned from my_calc
     ;////////////////
-    ;push eax
-    ;push format_int
-    ;call printf
-    ;add esp, 8
+    push eax
+    push format_int
+    call printf
+    add esp, 8
+
+    push str_newlinw
+    push format_strln
+    call printf
+    add esp, 8
     ;////////////////
     
     popfd
@@ -93,17 +99,10 @@ my_calc:
     ;add esp, 12
 
     sub esp, 4                      ;allocate space for local variable op_counter
-    mov dword [ebp-4], 3            ;counts the successful operations
-        ;////////////////
-        push dword [ebp-4]
-        push format_int
-        call printf
-        add esp, 8
-        ;////////////////
+    mov dword [ebp-4], 0            ;counts the successful operations
 
 
     prompt:
-
 
         push prompt_arrow
         push format_str
@@ -129,7 +128,7 @@ my_calc:
             call check_special_command
             add esp, 4                      ;restore esp position
             cmp eax, 0
-            je end_my_calc
+            jne end_my_calc
             
 
             call check_sp_commands
@@ -146,16 +145,9 @@ my_calc:
         handle_numeric:
             call handle_numeric_input   ;if it is an numeric input, jump to the label that handles it
             cmp eax, 1
-            jne prompt            
+            ;jne prompt            
         
         inc_op_counter:
-            ;////////////////
-            push str
-            push format_strln
-            call printf
-            add esp, 8
-            ;////////////////
-
             mov ebx, dword [ebp-4]
             inc ebx
             mov dword [ebp-4], ebx
