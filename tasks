@@ -26,5 +26,6 @@
 	the new link will point on the link that the list points on (the address on the stack)
 	the list will point on the new link (which we have stored its address beforehand)
 
+- free mempry of all links
 - imlplement feature d 
 - imlplement feature p (prints ">>" instaed of ">>calc")
