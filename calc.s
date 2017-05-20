@@ -58,6 +58,14 @@ main:
 
     call my_calc
     
+    ;print the number of successfuk operations returned from my_calc
+    ;////////////////
+    ;push eax
+    ;push format_int
+    ;call printf
+    ;add esp, 8
+    ;////////////////
+    
     popfd
     popad
 
@@ -70,21 +78,32 @@ main:
 
     ret
 
+
+
 my_calc:
     
-    pushad
-    pushfd
     push ebp
     mov ebp, esp
     ;****
 
     ;push STACK_CAPACITY
     ;push format_int
-    ;push dword [stdout]          ; send return value from my_calc to fprintf
+    ;push dword [stdout]            ;send return value from my_calc to fprintf
     ;call fprintf
     ;add esp, 12
 
+    sub esp, 4                      ;allocate space for local variable op_counter
+    mov dword [ebp-4], 3            ;counts the successful operations
+        ;////////////////
+        push dword [ebp-4]
+        push format_int
+        ;call printf
+        add esp, 8
+        ;////////////////
+
     prompt:
+
+
         push prompt_arrow
         push format_str
         call printf
@@ -104,22 +123,50 @@ my_calc:
             cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
             je prompt
 
-            call check_special_commands ;check if the input is a special command such as 'p', '+' etc.
-            cmp eax, 0
-            jne handle_special_command   
+            call check_sp_commands
+            cmp eax, 1
+            jne handle_numeric
 
+            call handle_special_commands ;check if the input is a special command such as 'p', '+' etc.
+            cmp eax, 1
+            je inc_op_counter
+
+            jmp prompt
+
+
+        handle_numeric:
             call handle_numeric_input   ;if it is an numeric input, jump to the label that handles it
-            
-            jmp prompt                  ;go back to prompt and start over again
+            cmp eax, 1
+            jne prompt            
+        
+        inc_op_counter:
+            ;////////////////
+            push str
+            push format_strln
+            call printf
+            add esp, 8
+            ;////////////////
 
+            mov ebx, dword [ebp-4]
+            inc ebx
+            mov dword [ebp-4], ebx
+
+
+        jmp prompt                  ;go back to prompt and start over again
+
+    
+
+    end_my_calc:
+        mov eax, dword [ebp-4]  ;return op_counter
+        add esp, 4              ;clean local variable op_counter
 
     ;****
     mov esp, ebp
     pop ebp
-    popfd
-    popad
 
     ret
+
+
 
 add_to_curr_list:
     push ebp
@@ -160,6 +207,9 @@ push_stack:
     mov ebp, esp
     ;****    
 
+    ; check if stack is not full. then start getting the first input (e.g 123456)
+        cmp dword [stack_counter], STACK_CAPACITY   ; if the stack is full, print error and return 0 (inside the error label)
+        je print_stack_full_error
 
     mov ebx, dword [stack_counter]              ; save counter inside ebx
     mov ecx, [ebp+8]                            ; save argument to push (address) inside ecx
@@ -167,6 +217,8 @@ push_stack:
     inc ebx                                     ; increase the stack counter by 1
     mov dword [stack_counter], ebx
 
+    mov eax, 1                                  ;the push was a success
+    return_push_stack:
 
     ;****    
     mov esp, ebp
@@ -182,8 +234,10 @@ pop_stack:
     mov ebx, dword [stack_counter]
     dec ebx
 
-    mov eax, dword [stack+4*ebx]
-    mov dword [stack+4*ebx], 0
+    mov eax, dword [stack+4*ebx]    ;copy the top of the stack into eax as return value
+    mov dword [stack+4*ebx], 0      ;remove data from the previous top of the stack
+
+    mov dword [stack_counter], ebx  ;decrease stack_counter by 1
 
     ;****
     mov esp, ebp
@@ -199,9 +253,6 @@ handle_numeric_input:
     ;****
 
 
-    ; check if stack is not full. then start getting the first input (e.g 123456)
-        cmp dword [stack_counter], STACK_CAPACITY   ; if the stack is full, return without doing anything (eax = 0)
-        je print_stack_full_error
 
     ;find input length
         mov ecx, 1                      ;use ecx as counter for the length of the input
@@ -256,17 +307,6 @@ handle_numeric_input:
 
             mov [bcd_num], cl           ;save the converted BCD number (malloc messes up register ecx apparently)
 
-
-            ;////////////////
-            ;mov eax, 0
-            ;mov al, bcd_num
-            ;push bcd_num
-            ;push format_strln
-            ;call printf
-            ;add esp, 8
-            ;////////////////
-
-
             push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
             call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
             test eax, eax
@@ -299,14 +339,7 @@ handle_numeric_input:
 
     ret
 
-handle_special_command:
-    push str
-    push format_strln
-    call printf
-    add esp, 8
-    jmp fail_exit
-
-check_special_commands:
+check_sp_commands:
     push ebp
     mov ebp, esp
     ;****
@@ -350,6 +383,92 @@ check_special_commands:
 
 
     return_check_sp_commands:
+
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+handle_special_commands:
+    push ebp
+    mov ebp, esp
+    ;****
+
+
+    push sp_p                       ;send the string "p" as argument to compare with input
+    call check_special_command      ;call the function that checks if the input is a sp
+    add esp, 4                      ;restore esp position
+    cmp eax, 0                      ;check if the return value is not null
+    jne exec_sp_p    ;if the return value is NOT 0, then eax contains the sp that was sent as an argument so return from the function
+
+    push sp_plus
+    call check_special_command
+    add esp, 4                      ;restore esp position
+    cmp eax, 0
+    jne return_handle_special_commands
+
+    push sp_r
+    call check_special_command
+    add esp, 4                      ;restore esp position
+    cmp eax, 0
+    jne return_handle_special_commands
+
+    push sp_l
+    call check_special_command
+    add esp, 4                      ;restore esp position
+    cmp eax, 0
+    jne return_handle_special_commands
+    
+    push sp_d
+    call check_special_command
+    add esp, 4                      ;restore esp position
+    cmp eax, 0
+    jne return_handle_special_commands
+
+    push sp_q
+    call check_special_command
+    add esp, 4                      ;restore esp position
+    cmp eax, 0
+    jne return_handle_special_commands
+
+
+    return_handle_special_commands:
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+exec_sp_p:
+    
+    call pop_stack
+
+    push eax                        ;send the return value from pop_stack (which is saved in eax) to print
+    call print_num
+    add esp, 4
+
+    mov eax, 1                      ;change return value of handle_special_commands to true
+
+    jmp return_check_sp_commands
+
+print_num:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    ;instructions for tomorrow:
+        ;scan the list and be on the last link. subsequantly, count the number of elemets (to use later)
+        ;for each link(from the end to the start):
+            ;convert it to a decimal number by:
+                ;if it is the RIGHT nubble, shift it 4 times left and then shift it 4 times right back
+                ;if it is the LEFT nubble, shift it 4 times right and then shift it 4 times left back
+                ;multiply the LEFT and the RIGHT bytes as shown in the white board
+
+
+
+    mov eax, 1
+
     ;****
     mov esp, ebp
     pop ebp
@@ -428,7 +547,8 @@ print_stack_full_error:
     call printf
     add esp, 8
 
-    jmp fail_exit
+    mov eax, 0
+    jmp return_push_stack
 
 func_format:
     pushad
