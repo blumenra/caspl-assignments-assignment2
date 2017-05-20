@@ -521,34 +521,44 @@ print_num:
         cmp dword [esi+1], 0             ;check if it is the end of the list
         je end_print_num_for
 
-        sub esp, 1
+        mov eax, 0
+        sub esp, 4
         mov al, byte [esi]
-        mov byte [esp], al
+        sub eax, 48
+        mov dword [esp], eax
 
         mov esi, dword [esi+1]           ;move to the next link in list
         jmp print_num_for               ;loop until we get to the end of the list
 
 
     end_print_num_for:
-        sub esp, 1
+        mov eax, 0
+        sub esp, 4
         mov al, byte [esi]
-        mov byte [esp], al
+        sub eax, 48
+        mov dword [esp], eax
+        
+        ;////////////////
+        push print_arrow
+        push format_str
+        call printf
+        add esp, 8
+
+        push dword [esp]
+        push format_int
+        call printf
+        add esp, 8
+
+        push str_newlinw
+        push format_strln
+        call printf
+        add esp, 8
+        ;////////////////
+
+        add esp, 4
 
 
 
-
-
-    ;////////////////
-    ;push str
-    ;push format_strln
-    ;call printf
-    ;add esp, 8
-
-    ;push str_newlinw
-    ;push format_str
-    ;call printf
-    ;add esp, 8
-    ;////////////////
 
 
 
