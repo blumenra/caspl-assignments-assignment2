@@ -145,7 +145,7 @@ my_calc:
         handle_numeric:
             call handle_numeric_input   ;if it is an numeric input, jump to the label that handles it
             cmp eax, 1
-            ;jne prompt            
+            jne prompt            
         
         inc_op_counter:
             mov ebx, dword [ebp-4]
@@ -247,8 +247,6 @@ pop_stack:
     ret
 
 handle_numeric_input:
-    pushad
-    pushfd
     push ebp
     mov ebp, esp
     ;****
@@ -335,8 +333,6 @@ handle_numeric_input:
     ;****
     mov esp, ebp
     pop ebp
-    popfd
-    popad
 
     ret
 
