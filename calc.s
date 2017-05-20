@@ -22,6 +22,7 @@ section .rodata
     error_expTooLarge: DB "Error: exponent too large", 0
     fail_exit_msg: DB "Exiting...", 0
     prompt_arrow: DB ">>calc: ", 0
+    print_arrow: DB ">>", 0
     debug_flag: DB "-d", 0
     sp_p: DB "p", 0
     sp_plus: DB "+", 0
@@ -72,10 +73,6 @@ main:
     
     cont_main:
     
-    push dword [debug]
-    push format_int
-    call printf
-    add esp, 8
 
     pushad
     pushfd
@@ -143,6 +140,50 @@ my_calc:
             call fgets
             add esp, 12  
         
+        ;debug check of input
+            cmp dword [debug], 1
+            jne end_debug_1
+
+            ;////////////////
+            section .data
+                debug_input_msg: DB "You entered %s", 0
+                debug_stack_size_msg: DB "Stack size is %d", 10, 0
+
+            section .text
+            
+                ;*print "You entered %s"
+                push print_arrow
+                push format_str
+                push dword [stderr]
+                call fprintf
+                add esp, 12
+
+                push input
+                push debug_input_msg
+                push dword [stderr]
+                call fprintf
+                add esp, 12
+                ;*
+
+                ;*print "Stack size is %d"
+                push print_arrow
+                push format_str
+                push dword [stderr]
+                call fprintf
+                add esp, 12
+
+                push dword [stack_counter]
+                push debug_stack_size_msg
+                push dword [stderr]
+                call fprintf
+                add esp, 12
+                ;*
+            ;////////////////
+
+            end_debug_1:
+
+
+
         ;handle input
             cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
             je prompt
