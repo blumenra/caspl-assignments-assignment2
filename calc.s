@@ -97,9 +97,10 @@ my_calc:
         ;////////////////
         push dword [ebp-4]
         push format_int
-        ;call printf
+        call printf
         add esp, 8
         ;////////////////
+
 
     prompt:
 
@@ -108,8 +109,8 @@ my_calc:
         push format_str
         call printf
         add esp, 8
-
         ;clean input buffer
+
             call clean_input_buffer
 
         ; wait for input from user
@@ -122,6 +123,14 @@ my_calc:
         ;handle input
             cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
             je prompt
+
+            ;check if "q"
+            push sp_q
+            call check_special_command
+            add esp, 4                      ;restore esp position
+            cmp eax, 0
+            je end_my_calc
+            
 
             call check_sp_commands
             cmp eax, 1
@@ -375,12 +384,6 @@ check_sp_commands:
     cmp eax, 0
     jne return_check_sp_commands
 
-    push sp_q
-    call check_special_command
-    add esp, 4                      ;restore esp position
-    cmp eax, 0
-    jne return_check_sp_commands
-
 
     return_check_sp_commands:
 
@@ -421,12 +424,6 @@ handle_special_commands:
     jne return_handle_special_commands
     
     push sp_d
-    call check_special_command
-    add esp, 4                      ;restore esp position
-    cmp eax, 0
-    jne return_handle_special_commands
-
-    push sp_q
     call check_special_command
     add esp, 4                      ;restore esp position
     cmp eax, 0
@@ -524,7 +521,7 @@ clean_input_buffer:
     mov ebp, esp
     ;****
 
-    mov esi, [ebp+8]
+    mov esi, input
 
     clean_input_for:
         cmp byte [esi], 0
