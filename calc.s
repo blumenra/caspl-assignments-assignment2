@@ -513,107 +513,52 @@ print_num:
 
     mov esi, dword [ebp+8]  ;save the list sent as argument inside esi
     
-    sub esp, 4                      ;allocate space for local variable input_counter
-    mov dword [ebp-4], 1            ;use [ebp-4] as counter of the list size
-    sub esp, 4                      ;allocate space for local variable input_counter
-    mov dword [ebp-8], 0            ;use [ebp-8] as accumulator of the number list represents
-    sub esp, 4                      ;allocate space for local variable input_counter
-    mov dword [ebp-12], 0           ;use [ebp-12] as index of the curr link in. initialize it with 0
+    ;sub esp, 4                      ;allocate space for local variable input_counter
+    ;mov dword [ebp-4], 1            ;use [ebp-4] as counter of the list size
+    ;sub esp, 4                      ;allocate space for local variable input_counter
+    ;mov dword [ebp-8], 0            ;use [ebp-8] as accumulator of the number list represents
+    ;sub esp, 4                      ;allocate space for local variable input_counter
+    ;mov dword [ebp-12], 0           ;use [ebp-12] as index of the curr link in. initialize it with 0
 
     print_num_for:
         cmp dword [esi+1], 0             ;check if it is the end of the list
         je end_print_num_for
-        inc dword [ebp-4]               ;inc counter by 1
+
+        sub esp, 1
+        mov al, byte [esi]
+        mov byte [esp], al
+
         mov esi, dword [esi+1]           ;move to the next link in list
         jmp print_num_for               ;loop until we get to the end of the list
 
 
     end_print_num_for:
-        mov ax, word [ebp-4]
-        mov bl, 2
-        div bl
+        sub esp, 1
+        mov al, byte [esi]
+        mov byte [esp], al
 
-        cmp ah, 0
-        je end_check_odd
 
-        ;convert nibble in dl to byte
-            mov edx, 0
-            mov dl, byte [esi]        ;save in edx the last digit value
-            add dword [ebp-8], edx      ;add to acc the last digit value
-            dec dword [ebp-4]           ;dec list size by 1, because we already add the last link to acc
 
-        end_check_odd:
-            mov esi, dword [ebp+8]
 
-        acc_num:
-            mov ebx, dword [ebp-12]         ;save index in ebx
-            shr ebx, 1
-            cmp ebx, dword [ebp-4]          ;compare between index and list size
-            jge end_acc_num                 ;if index is greater or equals to list size break from loop
-
-            ;convert each nibble of the link to byte
-                mov ebx, 0
-                mov edx, 0
-                mov bl, byte [esi]
-                mov dl, byte [esi]
-
-                shr bl, 4
-                shl bl, 4
-                
-                shl dl, 4
-                shr dl, 4
-
-            ;dl*(10^index)
-                mov eax, 1
-                mov ecx, dword [ebp-12]     
-                shl eax, cl
-                mul edx
-                add dword [ebp-8], ebx
-
-            inc dword [ebp-12]          ;inc index by 1
-
-            ;eax*(10^index)
-                mov ecx, 1
-                shl ecx, dword [ebp-12]
-                mul eax, ecx
-                add dword [ebp-8], eax
-
-            inc dword [ebp-12]          ;inc index by 1
-
-            mov esi, dword [esi+1]      ;move esi to the next link
-
-            jmp acc_num                 ;start loop again
-
-        end_acc_num:
 
     ;////////////////
-    push dword [ebp-8]
-    push format_int
+    push str
+    push format_strln
     call printf
     add esp, 8
 
-    push str_newlinw
-    push format_str
-    call printf
-    add esp, 8
+    ;push str_newlinw
+    ;push format_str
+    ;call printf
+    ;add esp, 8
     ;////////////////
 
 
 
-    ;instructions for tomorrow:
-        ;scan the list and be on the last link. subsequantly, count the number of elemets (to use later)
-        ;for each link(from the end to the start):
-            ;convert it to a decimal number by:
-                ;if it is the RIGHT nubble, shift it 4 times left and then shift it 4 times right back
-                ;if it is the LEFT nubble, shift it 4 times right and then shift it 4 times left back
-                ;multiply the LEFT and the RIGHT bytes as shown in the white board
 
-
-
-    mov eax, 1
 
     ;****
-    add esp, 12              ;clean local variable list_caounter
+    add esp, 1
     mov esp, ebp
     pop ebp
 
