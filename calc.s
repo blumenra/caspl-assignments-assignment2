@@ -517,22 +517,70 @@ exec_sp_d:
     mov ebp, esp
     ;****
 
+    
     call pop_stack
     cmp eax, 0                      ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
     je return_sp_d                  ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
 
+    ;----
+    ;call print_for_myself
+    ;----
+
     sub esp, 4                      ;allocate space on x86 stack for the POPED list (dword [ebp-4])
-    sub esp, 4                      ;allocate space on x86 stack for the DUPLICATED list (dword [ebp-8])
+    sub esp, 4                      ;allocate space on x86 stack for the DUPLICATING list (dword [ebp-8])
 
-    mov dword [ebp-4], eax
+    mov dword [ebp-4], eax          ;assign as local variable the poped list
+    mov edi, dword [ebp-4]          ;make edi point on the first link if the poped list
+
+    ;make esi point on the empty list which located in ebp-8. it will be the duplicated lisk at the end
+        mov esi, ebp
+        sub esi, 8
+
+    ;duplicate poped list
+        loop_dup_list:
+            cmp edi, 0
+            je end_loop_dup_list
+
+            ;create new link
+                push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
+                call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
+                test eax, eax
+                jz   fail_exit
+                add esp,4                   ;undo push for malloc
+
+            ; copy the data from the current link
+                mov bl, byte [edi]
+                mov byte [eax], bl
+            
+            mov byte [eax+1], 0         ;assign the new links''s next to NULL
 
 
+            push esi                    ;push the LIST to add to which is located inside the x86 stack
+            push eax                    ;push thr LINK to add
+            call add_to_list
+            add esp, 8                  ;undo pushes for add_to_list
 
-    
-    add esp, 4                      ;clean local variable poped list
-    add esp, 4                      ;clean local variable poped list
-    jmp return_check_sp_commands
-    
+            mov edi, dword [edi+1]
+            jmp loop_dup_list
+
+        end_loop_dup_list:
+
+    ;push the original list that was duplicated back to the stack
+        push dword [ebp-4]
+        call push_stack
+        add esp, 4                      ;undo pushes for push_stack
+        cmp eax, 0
+        ;je free_list
+
+    ;push the DUPLICATED list to stack
+        push dword [ebp-8]
+        call push_stack
+        add esp, 4                      ;undo pushes for push_stack
+        cmp eax, 0
+        ;je free_list
+
+    add esp, 4                      ;clean local variable DUPLICATED list
+    add esp, 4                      ;clean local variable POPED list
 
     return_sp_d:
 
