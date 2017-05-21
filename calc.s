@@ -149,7 +149,6 @@ my_calc:
 
 
         ;handle input
-            
             cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
             je prompt
             
@@ -182,7 +181,6 @@ my_calc:
 
 
         handle_numeric:
-
             call handle_numeric_input   ;if it is an numeric input, jump to the label that handles it
 
             ;debug
@@ -459,7 +457,7 @@ handle_special_commands:
 
     push sp_p                       ;send the string "p" as argument to compare with input
     call check_special_command      ;call the function that checks if the input is a sp
-    add esp, 4                      ;restore esp position
+    add esp, 4                      ;clean the above push sp
     cmp eax, 0                      ;check if the return value is not null
     jne exec_sp_p    ;if the return value is NOT 0, then eax contains the sp that was sent as an argument so return from the function
 
@@ -485,7 +483,9 @@ handle_special_commands:
     call check_special_command
     add esp, 4                      ;restore esp position
     cmp eax, 0
-    jne return_handle_special_commands
+    call exec_sp_d
+    jmp return_handle_special_commands
+
 
 
     return_handle_special_commands:
@@ -497,10 +497,9 @@ handle_special_commands:
 
 exec_sp_p:
     
-
     call pop_stack
-    cmp eax, 0                      ;if the pop failed, it returns 0. else the poped value
-    je return_check_sp_commands     ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+    cmp eax, 0                      ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
+    je return_handle_special_commands     ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
 
     push eax                        ;send the return value from pop_stack (which is saved in eax) to print
     call print_num
@@ -508,7 +507,38 @@ exec_sp_p:
 
     mov eax, 1                      ;change return value of handle_special_commands to true
 
+    jmp return_handle_special_commands
+
+exec_sp_d:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    call pop_stack
+    cmp eax, 0                      ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
+    je return_sp_d                  ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+
+    sub esp, 4                      ;allocate space on x86 stack for the POPED list (dword [ebp-4])
+    sub esp, 4                      ;allocate space on x86 stack for the DUPLICATED list (dword [ebp-8])
+
+    mov dword [ebp-4], eax
+
+    
+
+    
+    add esp, 4                      ;clean local variable poped list
+    add esp, 4                      ;clean local variable poped list
     jmp return_check_sp_commands
+    
+
+    return_sp_d:
+
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
 
 print_num:
     push ebp
