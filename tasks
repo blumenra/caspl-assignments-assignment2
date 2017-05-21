@@ -34,3 +34,24 @@
 ;----
 call print_for_myself
 ;----
+
+
+;////////////////
+mov ebx, dword [stack_counter]              ; save counter inside ebx
+push dword [stack + 4*ebx]
+push format_int
+call printf
+add esp, 8
+;////////////////
+
+
+push esp
+        push format_int
+        call printf
+        add esp, 8
+
+        push ebp
+        push format_int
+        call printf
+        add esp, 8
+

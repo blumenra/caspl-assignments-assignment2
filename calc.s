@@ -258,6 +258,9 @@ push_stack:
     mov ebp, esp
     ;****    
 
+
+    mov eax, 0
+
     ; check if stack is not full. then start getting the first input (e.g 123456)
         cmp dword [stack_counter], STACK_CAPACITY   ; if the stack is full, print error and return 0 (inside the error label)
         je print_stack_full_error
@@ -265,8 +268,8 @@ push_stack:
     mov ebx, dword [stack_counter]              ; save counter inside ebx
     mov ecx, [ebp+8]                            ; save argument to push (address) inside ecx
     mov dword [stack + 4*ebx], ecx              ; save the address at the top of the Stack
-    inc ebx                                     ; increase the stack counter by 1
-    mov dword [stack_counter], ebx
+    
+    inc dword [stack_counter]
 
     mov eax, 1                                  ;the push was a success
 
@@ -284,6 +287,7 @@ pop_stack:
     mov ebp, esp
     ;****
     
+    mov eax, 0
 
     ; check if stack is NOT empty.
         cmp dword [stack_counter], 0   ; if the stack is full, print error and return 0 (inside the error label)
@@ -295,7 +299,8 @@ pop_stack:
     mov eax, dword [stack+4*ebx]    ;copy the top of the stack into eax as return value
     mov dword [stack+4*ebx], 0      ;remove data from the previous top of the stack
 
-    mov dword [stack_counter], ebx  ;decrease stack_counter by 1
+    dec dword [stack_counter]
+
 
     return_pop_stack:
 
@@ -345,14 +350,17 @@ handle_numeric_input:
             ; the following method assumes input correctness (meaning, only numbers and special commands)!!
                 mov ebx, dword [input_counter]
                 mov dl, byte [input+ebx]
+                sub dl, 48
                 dec ebx
                 mov dword [input_counter], ebx
                 mov cl, byte [input+ebx]
+                sub cl, 48
                 jmp continue_for_input
 
             cl_get_zero:
                 mov ebx, dword [input_counter]
                 mov dl, byte [input+ebx]
+                sub dl, 48
                 mov cl, 0
                 mov dword [input_counter], ebx
 
@@ -365,12 +373,13 @@ handle_numeric_input:
 
             mov [bcd_num], cl           ;save the converted BCD number (malloc messes up register ecx apparently)
 
+
             push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
             call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
             test eax, eax
             jz   fail_exit
             add esp,4                   ;undo push for malloc
-     
+
             mov cl, [bcd_num]           ;assign the first byte with the bcd number
             mov byte [eax], cl
             mov dword [eax+1], 0        ;assign the rest 4 bytes with address 0
@@ -385,6 +394,7 @@ handle_numeric_input:
     
     ;push the address of the new list to stack
         push dword [curr_list]
+        mov dword [curr_list], 0
         call push_stack
         add esp, 4
     
@@ -506,25 +516,35 @@ print_num:
     mov ebp, esp
     ;****
 
-
-
     mov esi, dword [ebp+8]  ;save the list sent as argument inside esi
     
-    ;sub esp, 4                      ;allocate space for local variable input_counter
-    ;mov dword [ebp-4], 1            ;use [ebp-4] as counter of the list size
-    ;sub esp, 4                      ;allocate space for local variable input_counter
-    ;mov dword [ebp-8], 0            ;use [ebp-8] as accumulator of the number list represents
-    ;sub esp, 4                      ;allocate space for local variable input_counter
-    ;mov dword [ebp-12], 0           ;use [ebp-12] as index of the curr link in. initialize it with 0
+    ;print prompt arrow
+    ;////////////////
+        push print_arrow
+        push format_str
+        call printf
+        add esp, 8
+    ;////////////////
 
     print_num_for:
         cmp dword [esi+1], 0             ;check if it is the end of the list
         je end_print_num_for
 
+
         mov eax, 0
+        mov ebx, 0
+        mov al, [esi]
+        mov bl, al
+
+        shl bl, 4
+        shr bl, 4
+        
+        shr al, 4
+
         sub esp, 4
-        mov al, byte [esi]
-        sub eax, 48
+        mov dword [esp], ebx
+        
+        sub esp, 4
         mov dword [esp], eax
 
         mov esi, dword [esi+1]           ;move to the next link in list
@@ -532,37 +552,58 @@ print_num:
 
 
     end_print_num_for:
-        mov eax, 0
-        sub esp, 4
-        mov al, byte [esi]
-        sub eax, 48
-        mov dword [esp], eax
+    ;in case of lisk of a single link
         
-        ;////////////////
-        push print_arrow
-        push format_str
-        call printf
-        add esp, 8
+        mov eax, 0
+        mov ebx, 0
+        mov al, byte [esi]              ;save the current digit in eax
+        mov bl, al
 
+        shl bl, 4
+        shr bl, 4
+        
+        shr al, 4
+
+
+        sub esp, 4                      ;allocate space for the sigle digit
+        mov dword [esp], ebx            ;save the converted digit back in the stack
+
+        cmp al, 0
+        je while_esp_lower_than_ebp
+        
+        sub esp, 4                      ;allocate space for the sigle digit
+        mov dword [esp], eax            ;save the converted digit back in the stack
+
+
+    ;loop over the digits in x86 stack and print digit by digit
+    while_esp_lower_than_ebp:
+        
+        cmp esp, ebp
+        je return_print_num
+
+        ;print the current digit
+        ;////////////////
         push dword [esp]
         push format_int
-        call printf
-        add esp, 8
-
-        push str_newlinw
-        push format_strln
         call printf
         add esp, 8
         ;////////////////
 
         add esp, 4
+        jmp while_esp_lower_than_ebp
 
 
 
 
-
-
-
+    return_print_num:
+    
+    ;print newline
+    ;////////////////
+    push str_newlinw
+    push format_strln
+    call printf
+    add esp, 8
+    ;////////////////
 
     ;****
     add esp, 1
