@@ -28,6 +28,10 @@
 - imlplement feature d 
 - free mempry of all links
 - write tests
+- remove label func_format
+- remove label print_for_myself
+- remove label fail_exit
+- remove label debug_print_format
 
 
 ;----
