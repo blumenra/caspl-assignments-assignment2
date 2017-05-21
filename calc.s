@@ -468,26 +468,44 @@ handle_special_commands:
     call check_special_command
     add esp, 4                      ;restore esp position
     cmp eax, 0
-    jne return_handle_special_commands
+    jne call_exec_sp_plus
 
     push sp_r
     call check_special_command
     add esp, 4                      ;restore esp position
     cmp eax, 0
-    jne return_handle_special_commands
+    jne call_exec_sp_r
 
     push sp_l
     call check_special_command
     add esp, 4                      ;restore esp position
     cmp eax, 0
-    jne return_handle_special_commands
+    jne call_exec_sp_l
     
     push sp_d
     call check_special_command
     add esp, 4                      ;restore esp position
     cmp eax, 0
-    call exec_sp_d
+    jne call_exec_sp_d
+    
     jmp return_handle_special_commands
+
+
+    call_exec_sp_d:
+        call exec_sp_d
+        jmp return_handle_special_commands
+
+    call_exec_sp_plus:
+        call exec_sp_plus
+        jmp return_handle_special_commands
+    
+    call_exec_sp_r:
+        call exec_sp_r
+        jmp return_handle_special_commands
+
+    call_exec_sp_l:
+        call exec_sp_l
+        jmp return_handle_special_commands
 
 
 
@@ -602,6 +620,11 @@ exec_sp_d:
 
     ret
 
+exec_sp_plus:
+
+exec_sp_r:
+
+exec_sp_l:
 
 print_num:
     push ebp
