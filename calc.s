@@ -681,6 +681,7 @@ add:
     sub esp, 4                  ;allocate space for local variable which will hold the NEXT link of the curr link of list 1 ([ebp+8]) in [ebp-4]
     sub esp, 4                  ;allocate space for local variable which will hold the NEXT link of the curr link of list 2 ([ebp+12]) in [ebp-8]
     sub esp, 4                  ;allocate space for local variable which will hold the result of the addition in [ebp-12]
+    sub esp, 4                  ;allocate space for cflag of the last addition
 
     ;assign in [ebp-4] the next link of curr link of list 1
         mov esi, dword [ebp+8]      ;assign in esi list 1 (first link of curr)
@@ -695,8 +696,13 @@ add:
     ;initialize the return result list with 0
         mov dword [ebp-12], 0
 
+    ;initialize the cflag of the last addition with 0
+        mov dword [ebp-16], 0
+
 
     loop_lists_addition:
+        mov dword [ebp-16], 0       ;initialize our cflag inticator
+
         cmp esi, 0
         je esi_link_got_to_end
         cmp edi, 0
@@ -736,7 +742,7 @@ add:
         esi_link_got_to_one_before_end:
             mov cl, byte [esi]
             cmp dword [ebp-8], 0
-            je put_zero_in_dl
+            je put_in_dl_curr_link_data
             mov ebx, dword [ebp-8] 
             mov dl, byte [ebx]
             jmp add_cl_dl
@@ -744,9 +750,17 @@ add:
         edi_link_got_to_one_before_end:
             mov dl, byte [edi]
             cmp dword [ebp-4], 0
-            je put_zero_in_cl
+            je put_in_cl_curr_link_data
             mov ebx, dword [ebp-4]
             mov cl, byte [ebx]
+            jmp add_cl_dl
+
+        put_in_dl_curr_link_data:
+            mov dl, byte [edi]
+            jmp add_cl_dl
+
+        put_in_cl_curr_link_data:
+            mov cl, byte [esi]
             jmp add_cl_dl
 
         put_zero_in_dl:
@@ -758,7 +772,6 @@ add:
             jmp add_cl_dl
 
 
-
         add_cl_dl:
             add cl, dl
 
@@ -767,73 +780,145 @@ add:
         add al, byte [edi]          ;add the value of the curr link in list 2 to al
         
         jnb do_daa
-            inc al                      ;add the cf from the addition of the next links
+            add al, 1                      ;add the cf from the addition of the next links
 
 
         do_daa:
             daa                         ;adjust the above result to BCD and save the result in al
         
-        ;create a new link
-            mov ebx, 0                  ;initialize ebx with 0
-            mov bl, al                 ;save the value of the result from all above in bl (becasue malloc is going to change the value of eax)
+        jnb cont_add_loop
+            mov dword [ebp-16], 1
 
-            push ebx                    ;backup ebx because it might change during malloc
-            push edi                    ;backup edi because it might change during malloc
-            push esi                    ;backup esi because it might change during malloc
 
-            push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
-            call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
-            test eax, eax
-            jz   fail_exit
-            add esp,4                   ;undo push for malloc
-
-            pop esi                     ;restore esi to what it was before calling malloc
-            pop edi                     ;restore edi to what it was before calling malloc
-            pop ebx                     ;restore ebx to what it was before calling malloc
-
-        ;initialize the new link
-            mov byte [eax], bl
-            mov byte [eax+1], 0
-
-        ;add the new link to the result link
-            push edi                    ;backup edi cbecause it might change during add_to_list
-            push esi                    ;backup esi cbecause it might change during add_to_list
-
-            mov ecx, ebp
-            sub ecx, 12
-            push ecx                 ;push the LIST to add to which is located inside the x86 stack
-            push eax                    ;push thr LINK to add
-            call add_to_list
-            add esp, 8                  ;undo pushes for add_to_list
             
-            pop esi                     ;restore esi to what it was before calling add_to_list
-            pop edi                     ;restore edi to what it was before calling add_to_list
+        cont_add_loop:
+            ;create a new link
+                mov ebx, 0                  ;initialize ebx with 0
+                mov bl, al                 ;save the value of the result from all above in bl (becasue malloc is going to change the value of eax)
 
-        mov esi, dword [ebp-4]
-        mov edi, dword [ebp-8]
+                push ebx                    ;backup ebx because it might change during malloc
+                push edi                    ;backup edi because it might change during malloc
+                push esi                    ;backup esi because it might change during malloc
 
-        ;check if esi got to the end of list 1
-            cmp esi, 0
-            je loop_lists_addition
+                push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
+                call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
+                test eax, eax
+                jz   fail_exit
+                add esp,4                   ;undo push for malloc
 
-        ;check if edi got to the end of list 2
-            cmp edi, 0
-            je loop_lists_addition
+                pop esi                     ;restore esi to what it was before calling malloc
+                pop edi                     ;restore edi to what it was before calling malloc
+                pop ebx                     ;restore ebx to what it was before calling malloc
 
-        ;else
-            mov ecx, dword [esi+1]
-            mov dword [ebp-4], ecx
+            ;initialize the new link
+                mov byte [eax], bl
+                mov byte [eax+1], 0
 
-            mov edx, dword [edi+1]
-            mov dword [ebp-8], edx
+            ;add the new link to the result link
+                push edi                    ;backup edi cbecause it might change during add_to_list
+                push esi                    ;backup esi cbecause it might change during add_to_list
 
+                mov ecx, ebp
+                sub ecx, 12
+                push ecx                 ;push the LIST to add to which is located inside the x86 stack
+                push eax                    ;push thr LINK to add
+                call add_to_list
+                add esp, 8                  ;undo pushes for add_to_list
+                
+                pop esi                     ;restore esi to what it was before calling add_to_list
+                pop edi                     ;restore edi to what it was before calling add_to_list
+
+
+        cmp dword [ebp-16], 0               ;check if our cflag is NOT 0. if then go add anothr link after checking if we are in the last links
+        jne cf_add_another_link
+
+            mov esi, dword [ebp-4]          ;advance the curr link of list 1 by 1
+            mov edi, dword [ebp-8]          ;advance the curr link of list 2 by 1
+
+            ;check if esi got to the end of list 1
+                cmp esi, 0
+                je loop_lists_addition
+
+            ;check if edi got to the end of list 2
+                cmp edi, 0
+                je loop_lists_addition
+
+            ;else
+                mov ecx, dword [esi+1]
+                mov dword [ebp-4], ecx
+
+                mov edx, dword [edi+1]
+                mov dword [ebp-8], edx
 
         jmp loop_lists_addition
 
+        cf_add_another_link:
+        
+        ;if on the last two links the cflag was up- we need to create a new link with 1
+            cmp dword [ebp-4], 0
+            jne loop_lists_addition
+            cmp dword [ebp-8], 0
+            jne loop_lists_addition
+
+
+            ;create a new link
+                push ebx                    ;backup ebx because it might change during malloc
+                push edi                    ;backup edi because it might change during malloc
+                push esi                    ;backup esi because it might change during malloc
+
+                push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
+                call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
+                test eax, eax
+                jz   fail_exit
+                add esp,4                   ;undo push for malloc
+
+                pop esi                     ;restore esi to what it was before calling malloc
+                pop edi                     ;restore edi to what it was before calling malloc
+                pop ebx                     ;restore ebx to what it was before calling malloc
+
+            ;initialize the new link with data=1, next=NULL
+                mov byte [eax], 1
+                mov byte [eax+1], 0
+
+            ;add the new link to the result link
+                push edi                    ;backup edi cbecause it might change during add_to_list
+                push esi                    ;backup esi cbecause it might change during add_to_list
+
+                mov ecx, ebp
+                sub ecx, 12
+                push ecx                 ;push the LIST to add to which is located inside the x86 stack
+                push eax                    ;push thr LINK to add
+                call add_to_list
+                add esp, 8                  ;undo pushes for add_to_list
+                
+                pop esi                     ;restore esi to what it was before calling add_to_list
+                pop edi                     ;restore edi to what it was before calling add_to_list
+
+            mov esi, dword [ebp-4]
+            mov edi, dword [ebp-8]
+
+            ;check if esi got to the end of list 1
+                cmp esi, 0
+                je loop_lists_addition
+
+            ;check if edi got to the end of list 2
+                cmp edi, 0
+                je loop_lists_addition
+
+            ;else
+                mov ecx, dword [esi+1]
+                mov dword [ebp-4], ecx
+
+                mov edx, dword [edi+1]
+                mov dword [ebp-8], edx
+
+
+            jmp loop_lists_addition
+
 
     return_add:
-    ;mov eax, dword [ebp-12]
-    add esp, 12                         ;clean local valiables
+    mov eax, dword [ebp-12]
+    add esp, 16                         ;clean local valiables
     ;****
     mov esp, ebp
     pop ebp
