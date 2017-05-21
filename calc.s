@@ -621,11 +621,60 @@ exec_sp_d:
     ret
 
 exec_sp_plus:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    sub esp, 4                  ;allocate space for local variable which will hold the FIRST argument of the addition in [ebp-4]
+    sub esp, 4                  ;allocate space for local variable which will hold the SECOND argument of the addition in [ebp-8]
+    
+    call pop_stack
+    cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
+    je return_sp_plus           ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+
+    mov dword [ebp-4], eax      ;assign the FIRST poped arg in [ebp-4]
+    
+    call pop_stack
+    cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
+    je restore_stack_sp_plus    ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+
+    mov dword [ebp-8], eax      ;assign the SECOND poped arg in [ebp-8]
+
+
+    push dword [ebp-8]          ;send the SECOND poped argument to the function
+    push dword [ebp-4]          ;send the first poped argument to the function
+    call add
+    add esp, 8                  ;undo pushes for the above function
+
+    push eax
+    call push_stack
+    add esp, 4
+    jmp return_sp_plus
+
+
+    restore_stack_sp_plus:
+        push dword [ebp-4]      ;send the first poped argument to the stack
+        call push_stack
+        add esp, 4              ;undo push for the above function
+        mov eax, 0              ;assign FALSE in the return value
+        jmp return_sp_plus
+
+
+    return_sp_plus:
+    add esp, 8                  ;clean two local variables
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
 
 exec_sp_r:
 
 exec_sp_l:
 
+add:
+    
 print_num:
     push ebp
     mov ebp, esp
