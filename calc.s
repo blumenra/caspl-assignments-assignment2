@@ -224,9 +224,10 @@ add_to_curr_list:
     mov ebp, esp
     ;****
 
-    mov edi, [ebp+8]
-    mov esi, dword [curr_list]
+    mov edi, dword [ebp+8]          ;save in edi the LINK to add which was sent as argument
+    mov esi, dword [ebp+12]         ;save in edi the LIST to add to which was sent as argument
 
+    mov esi, dword [esi]
     cmp esi, 0
     je add_first_link
 
@@ -242,7 +243,8 @@ add_to_curr_list:
         jmp end_for_list
 
     add_first_link:
-        mov dword [curr_list], edi
+        mov esi, dword [ebp+12]
+        mov dword [esi], edi
 
 
     end_for_list:
@@ -382,9 +384,10 @@ handle_numeric_input:
             mov byte [eax], cl
             mov dword [eax+1], 0        ;assign the rest 4 bytes with address 0
 
+            push curr_list
             push eax                    ;send the address saved in eax to push_stack as argument
             call add_to_curr_list
-            add esp, 4
+            add esp, 8
 
             jmp for_input
 
@@ -523,7 +526,7 @@ exec_sp_d:
 
     mov dword [ebp-4], eax
 
-    
+
 
     
     add esp, 4                      ;clean local variable poped list
