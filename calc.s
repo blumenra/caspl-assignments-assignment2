@@ -535,18 +535,25 @@ exec_sp_d:
     ;make esi point on the empty list which located in ebp-8. it will be the duplicated lisk at the end
         mov esi, ebp
         sub esi, 8
-
+        mov dword [esi], 0                  ;initialize the new list with NULL
+        
     ;duplicate poped list
         loop_dup_list:
             cmp edi, 0
             je end_loop_dup_list
 
             ;create new link
+                push edi                    ;backup edi cbecause it might change during add_to_list
+                push esi                    ;backup esi cbecause it might change during add_to_list
+
                 push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
                 call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
                 test eax, eax
                 jz   fail_exit
                 add esp,4                   ;undo push for malloc
+
+                pop esi                     ;restore esi to what it was before calling add_to_list
+                pop edi                     ;restore edi to what it was before calling add_to_list
 
             ; copy the data from the current link
                 mov bl, byte [edi]
@@ -554,11 +561,16 @@ exec_sp_d:
             
             mov byte [eax+1], 0         ;assign the new links''s next to NULL
 
+            push edi                    ;backup edi cbecause it might change during add_to_list
+            push esi                    ;backup esi cbecause it might change during add_to_list
 
             push esi                    ;push the LIST to add to which is located inside the x86 stack
             push eax                    ;push thr LINK to add
             call add_to_list
             add esp, 8                  ;undo pushes for add_to_list
+            
+            pop esi                     ;restore esi to what it was before calling add_to_list
+            pop edi                     ;restore edi to what it was before calling add_to_list
 
             mov edi, dword [edi+1]
             jmp loop_dup_list
