@@ -129,8 +129,8 @@ my_calc:
         push format_str
         call printf
         add esp, 8
-        ;clean input buffer
 
+        ;clean input buffer
             call clean_input_buffer
 
         ; wait for input from user
@@ -140,6 +140,7 @@ my_calc:
             call fgets
             add esp, 12  
         
+
         ;debug check of input
             cmp dword [debug], 0
             je end_debug_1
@@ -150,9 +151,10 @@ my_calc:
         ;handle input
             
             cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
-            
             je prompt
             
+            ;clean initial zeros
+                call clean_init_zeros
 
             ;check if "q"
                 push sp_q
@@ -688,6 +690,78 @@ clean_input_buffer:
         jmp clean_input_for
 
     finished_cleaning:
+
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+clean_init_zeros:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    mov ecx, 0                      ;use ecx as index for the input buffer
+    mov ebx, 0                      ;use ebx as index for the buffer we copy to
+
+    loop_clean_zeros:
+        cmp byte [input+ecx], '0'      ;check if the current digit is zero
+        jne end_loop_clean_zeros
+        inc ecx
+        jmp loop_clean_zeros
+
+
+    end_loop_clean_zeros:
+
+    cmp byte [input+ecx], 10         ;check if the current digit is newline
+    je change_input_to_zero
+    section .bss
+        buf: resb 80
+    section .text
+
+    loop_copy_to_new_buffer:
+        cmp byte [input+ecx], 10      ;check if the current digit is newline
+        je copy_back_to_input
+        mov al, byte [input+ecx]
+        mov byte [buf+ebx], al
+        inc ecx
+        inc ebx
+        jmp loop_copy_to_new_buffer  
+
+
+    copy_back_to_input:
+    
+    mov al, byte [input+ecx]
+    mov byte [buf+ebx], al
+    
+    call clean_input_buffer
+    mov ebx, 0
+    mov ecx, 0
+
+    loop_copy_back_to_input:
+        cmp byte [buf+ebx], 10      ;check if the current digit is newline
+        je end_loop_copy_back_to_input
+        mov al, byte [buf+ebx]
+        mov byte [input+ecx], al
+        inc ecx
+        inc ebx
+        jmp loop_copy_back_to_input
+
+    end_loop_copy_back_to_input:
+    
+        mov al, byte [buf+ebx]
+        mov byte [input+ecx], al
+        jmp return_clean_init_zeros
+
+
+    change_input_to_zero:
+        call clean_input_buffer
+        mov byte [input], '0'
+        mov byte [input+1], 10
+
+
+    return_clean_init_zeros:
 
     ;****
     mov esp, ebp
