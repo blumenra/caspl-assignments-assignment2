@@ -674,7 +674,22 @@ exec_sp_r:
 exec_sp_l:
 
 add:
+    push ebp
+    mov ebp, esp
+    ;****
+
+
+    ;<func code>
+    ;mov eax, <return value>
     
+
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+        
 print_num:
     push ebp
     mov ebp, esp
