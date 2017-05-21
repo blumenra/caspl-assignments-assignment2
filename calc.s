@@ -678,18 +678,169 @@ add:
     mov ebp, esp
     ;****
 
+    sub esp, 4                  ;allocate space for local variable which will hold the NEXT link of the curr link of list 1 ([ebp+8]) in [ebp-4]
+    sub esp, 4                  ;allocate space for local variable which will hold the NEXT link of the curr link of list 2 ([ebp+12]) in [ebp-8]
+    sub esp, 4                  ;allocate space for local variable which will hold the result of the addition in [ebp-12]
 
-    ;<func code>
-    ;mov eax, <return value>
-    
+    ;assign in [ebp-4] the next link of curr link of list 1
+        mov esi, dword [ebp+8]      ;assign in esi list 1 (first link of curr)
+        mov ecx, dword [esi+1]      ;assign in ecx the next link of esi
+        mov dword [ebp-4], ecx      ;assign in [ebp-4] next link of esi
 
+    ;assign in [ebp-8] the next link of curr link of list 2
+        mov edi, dword [ebp+12]     ;assign in edi list 2 (first link of curr)
+        mov edx, dword [edi+1]      ;assign in edx the next link of edi
+        mov dword [ebp-8], edx      ;assign in [ebp-8] next link of edi    
+
+    ;initialize the return result list with 0
+        mov dword [ebp-12], 0
+
+
+    loop_lists_addition:
+        cmp esi, 0
+        je esi_link_got_to_end
+        cmp edi, 0
+        je edi_link_got_to_end
+        cmp dword [ebp-4], 0
+        je esi_link_got_to_one_before_end
+        cmp dword [ebp-8], 0
+        je edi_link_got_to_one_before_end
+
+        ;add the two NEXT value in order to invoke the cflag
+            mov ecx, dword [ebp-4]
+            mov cl, byte [ecx]
+            mov edx, dword [ebp-8]
+            mov dl, byte [edx]
+            jmp add_cl_dl
+            
+        esi_link_got_to_end:
+            mov cl, 0
+            cmp edi, 0
+            je return_add
+            cmp dword [ebp-8], 0
+            je edi_link_got_to_one_before_end
+            mov ebx, dword [ebp-8] 
+            mov dl, byte [ebx]
+            jmp add_cl_dl
+
+        edi_link_got_to_end:
+            mov dl, 0
+            cmp esi, 0
+            je return_add
+            cmp dword [ebp-4], 0
+            je esi_link_got_to_one_before_end
+            mov ebx, dword [ebp-4] 
+            mov cl, byte [ebx]
+            jmp add_cl_dl
+
+        esi_link_got_to_one_before_end:
+            mov cl, byte [esi]
+            cmp dword [ebp-8], 0
+            je put_zero_in_dl
+            mov ebx, dword [ebp-8] 
+            mov dl, byte [ebx]
+            jmp add_cl_dl
+
+        edi_link_got_to_one_before_end:
+            mov dl, byte [edi]
+            cmp dword [ebp-4], 0
+            je put_zero_in_cl
+            mov ebx, dword [ebp-4]
+            mov cl, byte [ebx]
+            jmp add_cl_dl
+
+        put_zero_in_dl:
+            mov dl, 0
+            jmp add_cl_dl
+
+        put_zero_in_cl:
+            mov cl, 0
+            jmp add_cl_dl
+
+
+
+        add_cl_dl:
+            add cl, dl
+
+        mov eax, 0
+        mov al, byte [esi]          ;assign the value of the curr link inlist 1 in al
+        add al, byte [edi]          ;add the value of the curr link in list 2 to al
+        
+        jnb do_daa
+            inc al                      ;add the cf from the addition of the next links
+
+
+        do_daa:
+            daa                         ;adjust the above result to BCD and save the result in al
+        
+        ;create a new link
+            mov ebx, 0                  ;initialize ebx with 0
+            mov bl, al                 ;save the value of the result from all above in bl (becasue malloc is going to change the value of eax)
+
+            push ebx                    ;backup ebx because it might change during malloc
+            push edi                    ;backup edi because it might change during malloc
+            push esi                    ;backup esi because it might change during malloc
+
+            push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
+            call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
+            test eax, eax
+            jz   fail_exit
+            add esp,4                   ;undo push for malloc
+
+            pop esi                     ;restore esi to what it was before calling malloc
+            pop edi                     ;restore edi to what it was before calling malloc
+            pop ebx                     ;restore ebx to what it was before calling malloc
+
+        ;initialize the new link
+            mov byte [eax], bl
+            mov byte [eax+1], 0
+
+        ;add the new link to the result link
+            push edi                    ;backup edi cbecause it might change during add_to_list
+            push esi                    ;backup esi cbecause it might change during add_to_list
+
+            mov ecx, ebp
+            sub ecx, 12
+            push ecx                 ;push the LIST to add to which is located inside the x86 stack
+            push eax                    ;push thr LINK to add
+            call add_to_list
+            add esp, 8                  ;undo pushes for add_to_list
+            
+            pop esi                     ;restore esi to what it was before calling add_to_list
+            pop edi                     ;restore edi to what it was before calling add_to_list
+
+        mov esi, dword [ebp-4]
+        mov edi, dword [ebp-8]
+
+        ;check if esi got to the end of list 1
+            cmp esi, 0
+            je loop_lists_addition
+
+        ;check if edi got to the end of list 2
+            cmp edi, 0
+            je loop_lists_addition
+
+        ;else
+            mov ecx, dword [esi+1]
+            mov dword [ebp-4], ecx
+
+            mov edx, dword [edi+1]
+            mov dword [ebp-8], edx
+
+
+        jmp loop_lists_addition
+
+
+    return_add:
+    ;mov eax, dword [ebp-12]
+    add esp, 12                         ;clean local valiables
     ;****
     mov esp, ebp
     pop ebp
 
     ret
 
-        
+
 print_num:
     push ebp
     mov ebp, esp
