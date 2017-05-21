@@ -219,7 +219,7 @@ my_calc:
 
 
 
-add_to_curr_list:
+add_to_list:
     push ebp
     mov ebp, esp
     ;****
@@ -386,7 +386,7 @@ handle_numeric_input:
 
             push curr_list
             push eax                    ;send the address saved in eax to push_stack as argument
-            call add_to_curr_list
+            call add_to_list
             add esp, 8
 
             jmp for_input
