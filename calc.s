@@ -269,7 +269,7 @@ push_stack:
     mov ecx, [ebp+8]                            ; save argument to push (address) inside ecx
     mov dword [stack + 4*ebx], ecx              ; save the address at the top of the Stack
     
-    inc dword [stack_counter]
+    inc dword [stack_counter]                   ;inc stack_counter by 1
 
     mov eax, 1                                  ;the push was a success
 
@@ -290,16 +290,16 @@ pop_stack:
     mov eax, 0
 
     ; check if stack is NOT empty.
-        cmp dword [stack_counter], 0   ; if the stack is full, print error and return 0 (inside the error label)
+        cmp dword [stack_counter], 0    ; if the stack is full, print error and return 0 (inside the error label)
         je print_stack_is_empty_error
 
-    mov ebx, dword [stack_counter]
-    dec ebx
+    mov ebx, dword [stack_counter]      ;save stack_counter in ebx   
+    dec ebx                             ;deb ebx by 1 because it makes sense afterwards
 
-    mov eax, dword [stack+4*ebx]    ;copy the top of the stack into eax as return value
-    mov dword [stack+4*ebx], 0      ;remove data from the previous top of the stack
+    mov eax, dword [stack+4*ebx]        ;copy the top of the stack into eax as return value
+    mov dword [stack+4*ebx], 0          ;remove data from the previous top of the stack
 
-    dec dword [stack_counter]
+    dec dword [stack_counter]           ;dec stack_counter by 1
 
 
     return_pop_stack:
@@ -315,18 +315,16 @@ handle_numeric_input:
     mov ebp, esp
     ;****
 
-
-
     ;find input length
         mov ecx, 1                      ;use ecx as counter for the length of the input
-        loop1:
+        loop1:                          ;run over the input until find '\n'
             cmp byte [input+ecx], 10
             je end_loop1
             inc ecx
             jmp loop1
 
         end_loop1:
-            mov dword [input_len], ecx
+            mov dword [input_len], ecx  ;save input length inside input_len
 
 
     ;start linking pairs from input
@@ -350,23 +348,23 @@ handle_numeric_input:
             ; the following method assumes input correctness (meaning, only numbers and special commands)!!
                 mov ebx, dword [input_counter]
                 mov dl, byte [input+ebx]
-                sub dl, 48
+                sub dl, 48                      ;dec 48 inorder to convert the char '1' (49 in ascii) to the int 1
                 dec ebx
                 mov dword [input_counter], ebx
                 mov cl, byte [input+ebx]
-                sub cl, 48
+                sub cl, 48                      ;dec 48 inorder to convert the char '1' (49 in ascii) to the int 1
                 jmp continue_for_input
 
             cl_get_zero:
                 mov ebx, dword [input_counter]
                 mov dl, byte [input+ebx]
-                sub dl, 48
+                sub dl, 48                      ;dec 48 inorder to convert the char '1' (49 in ascii) to the int 1
                 mov cl, 0
                 mov dword [input_counter], ebx
 
             continue_for_input:
-                shl cl, 4
-                or cl, dl
+                shl cl, 4                       ;make a nibble out of the byte saved in cl
+                or cl, dl                       ;'merge' the two nibbles into one byte (38 => 0x38)
             
             dec ebx
             mov dword [input_counter], ebx
@@ -393,10 +391,10 @@ handle_numeric_input:
     end_for_input:
     
     ;push the address of the new list to stack
-        push dword [curr_list]
-        mov dword [curr_list], 0
+        push dword [curr_list]          ;send the new list which represents the input number to push_stack
+        mov dword [curr_list], 0        ;initialize the list for the next input
         call push_stack
-        add esp, 4
+        add esp, 4                      ;clean local variable op_counter
     
 
     ;****
@@ -457,7 +455,6 @@ handle_special_commands:
     ;****
 
 
-
     push sp_p                       ;send the string "p" as argument to compare with input
     call check_special_command      ;call the function that checks if the input is a sp
     add esp, 4                      ;restore esp position
@@ -500,12 +497,12 @@ exec_sp_p:
     
 
     call pop_stack
-    cmp eax, 0
-    je return_check_sp_commands
+    cmp eax, 0                      ;if the pop failed, it returns 0. else the poped value
+    je return_check_sp_commands     ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
 
     push eax                        ;send the return value from pop_stack (which is saved in eax) to print
     call print_num
-    add esp, 4
+    add esp, 4                      ;clean push of print_num
 
     mov eax, 1                      ;change return value of handle_special_commands to true
 
@@ -519,40 +516,42 @@ print_num:
     mov esi, dword [ebp+8]  ;save the list sent as argument inside esi
     
     ;print prompt arrow
-    ;////////////////
-        push print_arrow
-        push format_str
-        call printf
-        add esp, 8
-    ;////////////////
+        ;////////////////
+            push print_arrow
+            push format_str
+            call printf
+            add esp, 8
+        ;////////////////
 
     print_num_for:
         cmp dword [esi+1], 0             ;check if it is the end of the list
         je end_print_num_for
 
 
-        mov eax, 0
-        mov ebx, 0
-        mov al, [esi]
-        mov bl, al
+        mov eax, 0                      ;initialize eax with 0
+        mov ebx, 0                      ;initialize ebx with 0
+        mov al, [esi]                   ;save the data from the current link inside al (1 byte)
+        mov bl, al                      ;copy the above data into bl
 
-        shl bl, 4
-        shr bl, 4
+        ;convert the RIGHT nibble back to byte
+            shl bl, 4
+            shr bl, 4
         
-        shr al, 4
+        ;convert the LEFT nibble back to byte
+            shr al, 4
 
-        sub esp, 4
-        mov dword [esp], ebx
+        sub esp, 4                      ;allocate space fot the LEFT digit of the current pair
+        mov dword [esp], ebx            ;save the digit in the space allocated above
         
-        sub esp, 4
-        mov dword [esp], eax
+        sub esp, 4                      ;allocate space fot the RIGHT digit of the current pair
+        mov dword [esp], eax            ;save the digit in the space allocated above
 
-        mov esi, dword [esi+1]           ;move to the next link in list
+        mov esi, dword [esi+1]          ;move to the next link in list
         jmp print_num_for               ;loop until we get to the end of the list
 
 
     end_print_num_for:
-    ;in case of lisk of a single link
+    ;in case of lisk of a SINGLE link (the code is almost same as above)
         
         mov eax, 0
         mov ebx, 0
@@ -568,7 +567,7 @@ print_num:
         sub esp, 4                      ;allocate space for the sigle digit
         mov dword [esp], ebx            ;save the converted digit back in the stack
 
-        cmp al, 0
+        cmp al, 0                       ;if cl is 0, dont allocate space for another digit
         je while_esp_lower_than_ebp
         
         sub esp, 4                      ;allocate space for the sigle digit
@@ -578,19 +577,19 @@ print_num:
     ;loop over the digits in x86 stack and print digit by digit
     while_esp_lower_than_ebp:
         
-        cmp esp, ebp
+        cmp esp, ebp                    ;loop until esp reaches ebp back
         je return_print_num
 
         ;print the current digit
-        ;////////////////
-        push dword [esp]
-        push format_int
-        call printf
-        add esp, 8
-        ;////////////////
+            ;////////////////
+            push dword [esp]
+            push format_int
+            call printf
+            add esp, 8
+            ;////////////////
 
-        add esp, 4
-        jmp while_esp_lower_than_ebp
+        add esp, 4                      ;clean memory of the printed digit
+        jmp while_esp_lower_than_ebp    ;loop until esp reaches ebp back
 
 
 
@@ -598,12 +597,12 @@ print_num:
     return_print_num:
     
     ;print newline
-    ;////////////////
-    push str_newlinw
-    push format_strln
-    call printf
-    add esp, 8
-    ;////////////////
+        ;////////////////
+        push str_newlinw
+        push format_strln
+        call printf
+        add esp, 8
+        ;////////////////
 
     ;****
     add esp, 1
@@ -616,13 +615,10 @@ check_special_command:
     push ebp
     mov ebp, esp
     ;****
-
-
     
     push input
     push dword [ebp+8]
     call cmp_str
-
     add esp, 8
 
     ;****
