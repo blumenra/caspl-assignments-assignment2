@@ -717,7 +717,7 @@ add:
             mov cl, byte [ecx]
             mov edx, dword [ebp-8]
             mov dl, byte [edx]
-            jmp add_cl_dl
+            jmp cont_1
             
         esi_link_got_to_end:
             mov cl, 0
@@ -727,7 +727,7 @@ add:
             je edi_link_got_to_one_before_end
             mov ebx, dword [ebp-8] 
             mov dl, byte [ebx]
-            jmp add_cl_dl
+            jmp cont_1
 
         edi_link_got_to_end:
             mov dl, 0
@@ -737,7 +737,7 @@ add:
             je esi_link_got_to_one_before_end
             mov ebx, dword [ebp-4] 
             mov cl, byte [ebx]
-            jmp add_cl_dl
+            jmp cont_1
 
         esi_link_got_to_one_before_end:
             mov cl, byte [esi]
@@ -745,7 +745,7 @@ add:
             je put_in_dl_curr_link_data
             mov ebx, dword [ebp-8] 
             mov dl, byte [ebx]
-            jmp add_cl_dl
+            jmp cont_1
 
         edi_link_got_to_one_before_end:
             mov dl, byte [edi]
@@ -753,34 +753,47 @@ add:
             je put_in_cl_curr_link_data
             mov ebx, dword [ebp-4]
             mov cl, byte [ebx]
-            jmp add_cl_dl
+            jmp cont_1
 
         put_in_dl_curr_link_data:
+            cmp edi, 0
+            je cont_1
             mov dl, byte [edi]
-            jmp add_cl_dl
+            jmp cont_1
 
         put_in_cl_curr_link_data:
+            cmp esi, 0
+            je cont_1
             mov cl, byte [esi]
-            jmp add_cl_dl
+            jmp cont_1
 
         put_zero_in_dl:
             mov dl, 0
-            jmp add_cl_dl
+            jmp cont_1
 
         put_zero_in_cl:
             mov cl, 0
-            jmp add_cl_dl
+            jmp cont_1
 
-
-        add_cl_dl:
-            add cl, dl
+        cont_1:
 
         mov eax, 0
+
+        cmp esi, 0
+        je cont_2
         mov al, byte [esi]          ;assign the value of the curr link inlist 1 in al
-        add al, byte [edi]          ;add the value of the curr link in list 2 to al
         
+        cmp edi, 0
+        je cont_3
+        
+        cont_2:
+            add al, byte [edi]          ;add the value of the curr link in list 2 to al
+        
+        cont_3:
+        
+        add cl, dl
         jnb do_daa
-            add al, 1                      ;add the cf from the addition of the next links
+                add al, 1                      ;add the cf from the addition of the next links
 
 
         do_daa:
@@ -829,26 +842,28 @@ add:
                 pop edi                     ;restore edi to what it was before calling add_to_list
 
 
-        cmp dword [ebp-16], 0               ;check if our cflag is NOT 0. if then go add anothr link after checking if we are in the last links
-        jne cf_add_another_link
 
             mov esi, dword [ebp-4]          ;advance the curr link of list 1 by 1
             mov edi, dword [ebp-8]          ;advance the curr link of list 2 by 1
+        
 
             ;check if esi got to the end of list 1
                 cmp esi, 0
-                je loop_lists_addition
-
-            ;check if edi got to the end of list 2
-                cmp edi, 0
-                je loop_lists_addition
-
-            ;else
+                ;je loop_lists_addition
+                je cont_a
                 mov ecx, dword [esi+1]
                 mov dword [ebp-4], ecx
 
+                cont_a:
+            ;check if edi got to the end of list 2
+                cmp edi, 0
+                je cont_b
                 mov edx, dword [edi+1]
                 mov dword [ebp-8], edx
+
+            cont_b:
+                cmp dword [ebp-16], 0               ;check if our cflag is NOT 0. if then go add anothr link after checking if we are in the last links
+                jne cf_add_another_link
 
         jmp loop_lists_addition
 
