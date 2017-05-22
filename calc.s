@@ -882,34 +882,16 @@ shift_r:
     ;[ebp-12] is acc list size
     ;[ebp-16] is res which will hold the number of multplication (untill we reach n)
     ;[ebp-20] is the original 2^k list
+    ;[ebp-24] is the curr link of list n
+    ;[ebp-28] is the curr link of list acc
 
     sub esp, 4                  ;allocate space for local variable which will hold the int k value
     sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
     sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
     sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
     sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
-
-    initialize_res:
-    ;initialize res
-        ;create a list which will hold the return value
-        ;create a new link
-            push edi                    ;backup edi because it might change during malloc
-            push esi                    ;backup esi because it might change during malloc
-
-            push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
-            call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
-            test eax, eax
-            jz   fail_exit
-            add esp,4                   ;undo push for malloc
-
-            pop esi                     ;restore esi to what it was before calling malloc
-            pop edi                     ;restore edi to what it was before calling malloc
-
-        ;initialize the new link
-            mov ebx, 0
-            mov byte [eax], bl
-            mov dword [eax+1], 0
-            mov dword [ebp-16], eax
+    sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
+    sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
 
     ;check if exp is not too large
         mov eax, 0
@@ -972,56 +954,9 @@ shift_r:
             call len
             mov dword [ebp-12], eax         ;hold acc length in [ebp-12]
         
-
-
-        loot_shift_r:
-            ;conpare list lengths
-                mov ecx, dword [ebp-12]
-                cmp ecx, dword [ebp-4]
-            b1:
-            ;len(acc) < len(n)
-                jl acc_still_smaller_than_n
-            b2:
-                cmp ecx, dword [ebp-4]
-            ;len(acc) > len(n)
-                jg acc_bigger_than_n
-            b3:
-            ;len(acc) == len(n)
-                ;hold in esi and edi the last links of n and acc
-                
-                ;get last link of n
-                    push dword [ebp+12]
-                    call get_last_link
-                    add esp, 4
-                    mov esi, eax
-
-                    push esi        ;backup esi
-
-                ;get last link of acc
-                    push dword [ebp-8]
-                    call get_last_link
-                    add esp, 4
-                    mov edi, eax
-
-                    pop esi         ;restore esi
-
-                mov ecx, 0
-                mov cl, byte [esi]
-                cmp byte [edi], cl
-                ;acc >= n
-                ja acc_bigger_than_n
-
-            b4:
-            acc_still_smaller_than_n:
-            b5:
-                ;add to acc 2^k and put the result in [ebp-8]
-                    push dword [ebp-20]
-                    push dword [ebp-8]
-                    call add
-                    add esp, 8
-                    mov dword [ebp-8], eax
-
-            ;create a list which will hold the value number 1
+        initialize_res:
+        ;initialize res
+            ;create a list which will hold the return value
             ;create a new link
                 push edi                    ;backup edi because it might change during malloc
                 push esi                    ;backup esi because it might change during malloc
@@ -1036,14 +971,116 @@ shift_r:
                 pop edi                     ;restore edi to what it was before calling malloc
 
             ;initialize the new link
-                mov byte [eax], 00000001b
+                mov ebx, 0
+                mov byte [eax], bl
                 mov dword [eax+1], 0
+                mov dword [ebp-16], eax
+
+        initialize_curr_links:
+        ;initialize curr links of n
+            ;get last link of n
+                push dword [ebp+12]
+                call get_last_link
+                add esp, 4
+                mov dword [ebp-24], eax
+        
+        ;initialize curr links of acc
+            mov dword [ebp-28], 0
+
+
+        loot_shift_r:
+            ;compare list lengths
+
+                mov ecx, dword [ebp-12]
+                cmp ecx, dword [ebp-4]
+            b1:
+            ;len(acc) < len(n)
+                jl acc_still_smaller_than_n
+            b2:
+                cmp ecx, dword [ebp-4]
+            ;len(acc) > len(n)
+                jg acc_bigger_than_n
+            b3:
+            ;len(acc) == len(n)
+                ;hold in esi and edi the last links of n and acc
                 
-                ;inc res
-                    push eax
-                    push dword [ebp-16]
+                cmp dword [ebp-28], 0
+                jne cont_eq_shifr_r
+                ;get last link of acc
+                    push dword [ebp-8]
+                    call get_last_link
+                    add esp, 4
+                    mov dword [ebp-28], eax
+                
+                cont_eq_shifr_r:
+
+                    mov ecx, dword [ebp-24]
+                    mov edx, dword [ebp-28]
+                    mov cl, byte [ecx]
+                    mov dl, byte [edx]
+                    cmp dl, cl
+                    ja acc_bigger_than_n
+                    
+                    ;acc <= n
+                    cmp dl, cl
+                    alon:
+                    jb acc_still_smaller_than_n
+                    
+
+                    ;acc==n
+                    set_curr_link_of_n_to_privious:
+                        mov esi, dword [ebp+12]                 ;point esi on the beginning of n
+                        cmp esi, dword [ebp-24]                 ;cmp between the first link and the curr link in n
+                        je got_to_first_links                   ;if it equals, it means that the previous link is the first link again so return
+                        mov ecx, dword [ebp-24]                 ;else, check if the next link of the iterator is me
+                        cmp dword [esi+1], ecx                  ;else, check if the next link of the iterator is me
+                        je found_previous_link_n                ;if ture, go handle acc
+
+                        mov esi, [esi+1]                        ;else move forward the iterator by one and start over again
+                        jmp set_curr_link_of_n_to_privious
+
+                        found_previous_link_n:
+                        mov dword [ebp-24], esi
+
+                    set_curr_link_of_acc_to_privious:
+                        mov edi, dword [ebp-8]
+                        cmp edi, dword [ebp-28]
+                        je got_to_first_links
+                        mov ecx, dword [ebp-28]
+                        cmp dword [edi+1], ecx
+                        je found_previous_link_acc
+
+                        mov edi, [edi+1]
+                        jmp set_curr_link_of_acc_to_privious
+
+                        found_previous_link_acc:
+                            mov dword [ebp-28], edi
+
+                        jmp cont_eq_shifr_r
+
+                        got_to_first_links:
+                            ;inc res
+                            push dword [ebp-16]
+                            call inc_res
+                            mov dword [ebp-16], eax
+                            jmp acc_bigger_than_n
+            b4:
+            acc_still_smaller_than_n:
+            b5:
+                ;add to acc 2^k and put the result in [ebp-8]
+                    push dword [ebp-20]
+                    push dword [ebp-8]
                     call add
                     add esp, 8
+                    mov dword [ebp-8], eax
+
+                    push dword [ebp-8]
+                    call get_last_link
+                    add esp, 4
+                    mov dword [ebp-28], eax
+
+                    push dword [ebp-16]
+                    call inc_res
                     mov dword [ebp-16], eax
 
 
@@ -1055,21 +1092,53 @@ shift_r:
             jmp loot_shift_r
 
 
-    return_shift_r:
-
-
     acc_bigger_than_n:
         mov eax, dword [ebp-16]
 
 
-
     ;****
-    add esp, 20                      ;clean local variables
+    return_shift_r:
+    add esp, 28                      ;clean local variables
     mov esp, ebp
     pop ebp
 
     ret
 
+inc_res:
+
+    push ebp
+    mov ebp, esp
+    ;****
+
+    mov edi, dword [ebp+8]
+
+    ;create a list which will hold the value number 1
+    ;create a new link
+        push edi                    ;backup esi because it might change during malloc
+
+        push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
+        call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
+        test eax, eax
+        jz   fail_exit
+        add esp,4                   ;undo push for malloc
+
+        pop edi                     ;restore esi to what it was before calling malloc
+
+    ;initialize the new link
+        mov byte [eax], 00000001b
+        mov dword [eax+1], 0
+    
+    ;inc res
+        push eax
+        push edi
+        call add
+        add esp, 8
+    
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
 
 add:
     push ebp
