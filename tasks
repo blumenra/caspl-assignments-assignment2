@@ -36,6 +36,15 @@
 - remove label fail_exit
 - remove label debug_print_format
 
+tests:
+	001 (zeros in the begining)- remove all leading zeros
+	0- create a single link of [0,NULL]
+	0000- remove all leading zeros and create a single link of [0, NULL]
+	empty string input
+	
+	l:
+		n = 0, k <= 0
+		n >= 0, k = 0
 
 ;----
 call print_for_myself

@@ -878,7 +878,7 @@ add:
 
             add cl, dl
             cmp cl, 00010000b
-            jl do_daa                   ;if the sum of the both right nibbles are LESS than 16, do nothing!
+            jl conv_left_nibbles_if_sum_greater_than_15                   ;if the sum of the both right nibbles are LESS than 16, do nothing!
 
             sub cl, 00001010b           ;sub 10 from the previous sum
 
@@ -894,11 +894,44 @@ add:
                 shr bl, 4
                 shl bl, 4
 
+        conv_left_nibbles_if_sum_greater_than_15:
+            mov ecx, 0                  ;initialize cl for coming use
+            mov edx, 0                  ;initialize dl for coming use
+            mov cl, al                  ;copy al to cl
+            mov dl, bl                  ;copy al to dl
+bla4:
+            ;leave only the left nibbles of the two byte
+                shr cl, 4
+                
+                shr dl, 4
+
+                add cl, dl
+                cmp cl, 00010000b
+                jl do_daa                   ;if the sum of the both right nibbles are LESS than 16, do nothing!
+
+                sub cl, 00001010b           ;sub 10 from the previous sum
+                shl cl, 4
+
+            ;leave only the right nibble of al, with adding carry of 1 to it
+                shl al, 4
+                mov dword [ebp-8], 1          ;put in our cflag 1 if cflag was set
+                shr al, 4
+
+            ;restore al to be the new converted al
+                or al, cl
+
+            ;leave only the left nibble of bl
+                mov bl, 0
+
+            jmp do_daa2
+
         do_daa:
-            add al, bl
-            add eax, dword [ebp-8]            ;add the carry (if there was any) from last addition
-            daa
             mov dword [ebp-8], 0              ;initialize our cflag with 0
+            add eax, dword [ebp-8]            ;add the carry (if there was any) from last addition
+        
+        do_daa2:
+            add al, bl
+            daa
 
             jnb cont
                 mov dword [ebp-8], 1          ;put in our cflag 1 if cflag was set
