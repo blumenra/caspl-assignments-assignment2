@@ -678,8 +678,9 @@ exec_sp_l:
     mov ebp, esp
     ;****
 
-    sub esp, 4                  ;allocate space for local variable which will hold the FIRST argument of the addition in [ebp-4]
-    sub esp, 4                  ;allocate space for local variable which will hold the SECOND argument of the addition in [ebp-8]
+    sub esp, 4                  ;allocate space for local variable which will hold k
+    sub esp, 4                  ;allocate space for local variable which will hold n
+
     
     call pop_stack
     cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
@@ -698,6 +699,8 @@ exec_sp_l:
     push dword [ebp-4]          ;send the first poped argument to the function
     call shift_l
     add esp, 8                  ;undo pushes for the above function
+    cmp eax, 0
+    je print_exp_too_large_error
 
     push eax
     call push_stack
@@ -706,9 +709,14 @@ exec_sp_l:
 
 
     restore_stack_sp_l:
+        push dword [ebp-8]      ;send the second poped argument to the stack
+        call push_stack
+        add esp, 4              ;undo push for the above function
+        
         push dword [ebp-4]      ;send the first poped argument to the stack
         call push_stack
         add esp, 4              ;undo push for the above function
+        
         mov eax, 0              ;assign FALSE in the return value
         jmp return_sp_l
 
@@ -733,10 +741,17 @@ shift_l:
     sub esp, 4                  ;allocate space for local variable which will hold the int k value
     sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
 
+    ;check if exp is not too large
+    bla3:
+        mov eax, 0
+        mov ebx, dword [ebp+8]
+        cmp dword [ebx+1], 0
+        jne return_shift_l
 
     mov dword [ebp-4], 0        ;initialize the space which will hold the int k with 0
     mov eax, dword [ebp+12]     ;initialize the return result list with 0
     mov dword [ebp-8], eax      ;initialize the return result list with 0
+    
 
     ;convert k from BCD to int
         mov esi, dword [ebp+8]  ;put in esi the list which represents k in BCD
@@ -763,6 +778,7 @@ shift_l:
         ;**careful! maybe should be just ax
         mov dword [ebp-4], eax
 
+
     ;start multiplying n by 2 k times
 
         mov ecx, 0
@@ -786,10 +802,12 @@ shift_l:
             jmp loop_multiply_by_2
 
 
-        end_loop_multiply_by_2:
+    end_loop_multiply_by_2:
+        mov eax, dword [ebp-8]
+
+    return_shift_l:
 
     ;****
-    mov eax, dword [ebp-8]
     add esp, 8                      ;clean local variables
     mov esp, ebp
     pop ebp
@@ -1309,6 +1327,22 @@ print_stack_full_error:
 
 
     jmp return_push_stack
+
+print_exp_too_large_error:
+
+    pushad
+    pushfd
+    
+    push error_expTooLarge
+    push format_strln
+    call printf
+    add esp, 8
+
+    popfd
+    popad
+    
+    mov eax, 0
+    jmp restore_stack_sp_l
 
 func_format:
     push ebp
