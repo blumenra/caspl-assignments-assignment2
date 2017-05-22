@@ -983,6 +983,7 @@ shift_r:
                 call get_last_link
                 add esp, 4
                 mov dword [ebp-24], eax
+
         
         ;initialize curr links of acc
             mov dword [ebp-28], 0
@@ -1028,22 +1029,27 @@ shift_r:
                     
 
                     ;acc==n
+                    mov esi, dword [ebp+12]                 ;point esi on the beginning of n
+                    
                     set_curr_link_of_n_to_privious:
-                        mov esi, dword [ebp+12]                 ;point esi on the beginning of n
+                        
+
+
                         cmp esi, dword [ebp-24]                 ;cmp between the first link and the curr link in n
                         je got_to_first_links                   ;if it equals, it means that the previous link is the first link again so return
                         mov ecx, dword [ebp-24]                 ;else, check if the next link of the iterator is me
                         cmp dword [esi+1], ecx                  ;else, check if the next link of the iterator is me
                         je found_previous_link_n                ;if ture, go handle acc
 
-                        mov esi, [esi+1]                        ;else move forward the iterator by one and start over again
+                        mov esi, dword [esi+1]                        ;else move forward the iterator by one and start over again
                         jmp set_curr_link_of_n_to_privious
 
                         found_previous_link_n:
                         mov dword [ebp-24], esi
+                        
+                        mov edi, dword [ebp-8]
 
                     set_curr_link_of_acc_to_privious:
-                        mov edi, dword [ebp-8]
                         cmp edi, dword [ebp-28]
                         je got_to_first_links
                         mov ecx, dword [ebp-28]
