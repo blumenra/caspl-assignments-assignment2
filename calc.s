@@ -742,7 +742,6 @@ shift_l:
     sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
 
     ;check if exp is not too large
-    bla3:
         mov eax, 0
         mov ebx, dword [ebp+8]
         cmp dword [ebx+1], 0
@@ -870,7 +869,6 @@ exec_sp_r:
 
     ret
 
-
 shift_r:
     push ebp
     mov ebp, esp
@@ -890,6 +888,7 @@ shift_r:
         jne return_shift_r
 
 
+    
 
 
 
@@ -1325,6 +1324,38 @@ cmp_str:
     end_for_:
 
 
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+len:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    ;[ebp+8]- list to calculate its length
+
+    mov esi, dword [ebp+8]          ;curr link
+    mov ecx, 0                      ;length counter
+    
+    cmp esi, 0
+    je return_len
+    
+    inc ecx
+    
+    loop_len:
+        cmp dword [esi+1], 0
+        je return_len
+        mov esi, dword [esi+1]
+        inc ecx
+
+        jmp loop_len
+    
+
+    return_len:
+    mov eax, ecx
     ;****
     mov esp, ebp
     pop ebp

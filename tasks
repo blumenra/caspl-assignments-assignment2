@@ -51,3 +51,16 @@ call print_for_myself
 ;----
 
 
+
+    ;---
+    push eax
+    push eax
+    call len
+    add esp, 4
+
+    push eax
+    push format_int
+    call printf
+    add esp, 8
+    pop eax
+    ;---
