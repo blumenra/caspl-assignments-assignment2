@@ -746,20 +746,19 @@ add:
 
 
     loop_lists_addition:
+        mov eax, 0
         cmp esi, 0
         je esi_link_got_to_end          ;if esi got to the end of list 1, go handle edi
         cmp edi, 0
         je edi_link_got_to_end
 
         ;both esi and edi DIDNT get to the end of their lists
-            mov eax, 0
             mov al, byte [esi]          ;save the data of the link esi is poiting at
             add al, byte [edi]          ;add to al the data of the link edi is poiting at
             jmp do_daa
 
 
         esi_link_got_to_end:
-            mov eax, 0
             cmp edi, 0
             je check_for_last_cflag     ;if also edi got to end of list 2, go check if there was a carry along the calculation
             add al, byte [edi]
@@ -767,7 +766,6 @@ add:
 
 
         edi_link_got_to_end:
-            mov eax, 0
             cmp esi, 0
             je check_for_last_cflag     ;if also esi got to end of list 2, go check if there was a carry along the calculation
             add al, byte [esi]
