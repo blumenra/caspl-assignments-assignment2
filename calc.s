@@ -989,7 +989,7 @@ shift_r:
                 mov cl, byte [esi]
                 cmp byte [edi], cl
                 ;acc >= n
-                jge acc_bigger_than_n
+                jae acc_bigger_than_n
 
             b4:
             acc_still_smaller_than_n:
