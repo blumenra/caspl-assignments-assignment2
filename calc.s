@@ -899,7 +899,7 @@ add:
             mov edx, 0                  ;initialize dl for coming use
             mov cl, al                  ;copy al to cl
             mov dl, bl                  ;copy al to dl
-bla4:
+
             ;leave only the left nibbles of the two byte
                 shr cl, 4
                 
@@ -957,8 +957,6 @@ bla4:
             ;initialize the new link
                 mov byte [eax], bl
                 mov byte [eax+1], 0
-
-            bla:   
 
             ;add the new link to the result link
                 push edi                    ;backup edi cbecause it might change during add_to_list
