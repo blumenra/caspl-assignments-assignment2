@@ -914,16 +914,21 @@ add:
 
             ;leave only the right nibble of al, with adding carry of 1 to it
                 shl al, 4
-                mov dword [ebp-8], 1          ;put in our cflag 1 if cflag was set
                 shr al, 4
 
             ;restore al to be the new converted al
                 or al, cl
 
             ;leave only the left nibble of bl
-                mov bl, 0
+                shl bl, 4
+                shr bl, 4
 
-            jmp do_daa2
+            add eax, dword [ebp-8]            ;add the carry (if there was any) from last addition
+            add al, bl
+            daa
+            
+            mov dword [ebp-8], 1          ;put in our cflag 1 if cflag was set
+            jmp cont
 
         do_daa:
             add eax, dword [ebp-8]            ;add the carry (if there was any) from last addition
