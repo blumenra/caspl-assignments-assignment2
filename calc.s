@@ -146,6 +146,12 @@ my_calc:
             je end_debug_1
             call debug_print_input
             end_debug_1:
+        
+        ;debug check of input
+            cmp dword [debug], 0
+            je end_debug_2
+            call debug_print_stack
+            end_debug_2:
 
 
         ;handle input
@@ -829,7 +835,6 @@ add:
 
     ret
 
-
 print_num:
     push ebp
     mov ebp, esp
@@ -848,7 +853,6 @@ print_num:
     print_num_for:
         cmp dword [esi+1], 0             ;check if it is the end of the list
         je end_print_num_for
-
 
         mov eax, 0                      ;initialize eax with 0
         mov ebx, 0                      ;initialize ebx with 0
@@ -932,6 +936,36 @@ print_num:
     pop ebp
 
     ret
+
+print_stack:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    mov ecx, 0
+    
+    loop_print_stack:
+        mov edx, dword [stack_counter]
+        cmp ecx, edx
+        je return_print_stack
+
+        push ecx
+        push dword [stack+4*ecx]
+        call print_num
+        add esp, 4
+        pop ecx
+
+        inc ecx
+
+    jmp loop_print_stack
+    
+    return_print_stack:
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
 
 check_special_command:
     push ebp
@@ -1193,6 +1227,35 @@ debug_print_input:
         call fprintf
         add esp, 12
         ;*
+
+    ;****
+    mov esp, ebp
+    pop ebp
+    popfd
+    popad
+
+    ret
+
+debug_print_stack:
+    pushad
+    pushfd
+    push ebp
+    mov ebp, esp
+    ;****
+
+    section .data
+        debug_print_stack_msg: DB "Stack:", 10 , 0
+
+    section .text
+    ;*print "Stack:"
+        push input
+        push debug_print_stack_msg
+        push dword [stderr]
+        call fprintf
+        add esp, 12
+
+        call print_stack
+    ;*
 
     ;****
     mov esp, ebp
