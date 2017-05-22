@@ -189,25 +189,24 @@ my_calc:
         handle_numeric:
             call handle_numeric_input   ;if it is an numeric input, jump to the label that handles it
 
+
+            ;cmp eax, 1
             ;debug
                 cmp dword [debug], 0
-                je end_debug_4
-                ;call print_stack_size
-                end_debug_4:
-
-            cmp eax, 1
-            jne prompt            
+                je end_debug_5
+                call print_stack_size
+                end_debug_5:
+            
+            jmp prompt            
         
         inc_op_counter:
-            mov ebx, dword [ebp-4]
-            inc ebx
-            mov dword [ebp-4], ebx
+            inc dword [ebp-4]
 
         ;debug
             cmp dword [debug], 0
-            je end_debug_5
+            je end_debug_6
             call print_stack_size
-            end_debug_5:
+            end_debug_6:
 
         jmp prompt                  ;go back to prompt and start over again
 
