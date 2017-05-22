@@ -527,6 +527,22 @@ exec_sp_p:
     cmp eax, 0                      ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
     je return_handle_special_commands     ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
 
+    
+
+    ;---
+    push eax
+    push eax
+    call get_last_link
+    add esp, 4
+
+    push eax
+    call print_num
+    add esp, 4
+    pop eax
+    ;---
+
+
+
     push eax                        ;send the return value from pop_stack (which is saved in eax) to print
     call print_num
     add esp, 4                      ;clean push of print_num
@@ -877,8 +893,14 @@ shift_r:
     ;[ebp+8] is k
     ;[ebp+12] is n
 
+    ;[ebp-4] is n list size
+    ;[ebp-8] is acc list which will be initialize with 2^k
+    ;[ebp-12] is acc list size
+    ;[ebp-16] is res which will hold the number of multplication (untill we reach n)
 
     sub esp, 4                  ;allocate space for local variable which will hold the int k value
+    sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
+    sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
     sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
 
     ;check if exp is not too large
@@ -887,8 +909,58 @@ shift_r:
         cmp dword [ebx+1], 0
         jne return_shift_r
 
-
+    ;initialize n list size in [ebp-4]
+        push dword [ebp+12]
+        call len
+        mov dword [ebp-4], eax
     
+    ;create a list which will hold the value number 1
+        ;create a new link
+            push edi                    ;backup edi because it might change during malloc
+            push esi                    ;backup esi because it might change during malloc
+
+            push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
+            call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
+            test eax, eax
+            jz   fail_exit
+            add esp,4                   ;undo push for malloc
+
+            pop esi                     ;restore esi to what it was before calling malloc
+            pop edi                     ;restore edi to what it was before calling malloc
+
+        ;initialize the new link
+            mov byte [eax], 00000001b
+            mov byte [eax+1], 0
+
+        ;add the new link to the result link
+            push edi                    ;backup edi cbecause it might change during add_to_list
+            push esi                    ;backup esi cbecause it might change during add_to_list
+
+            mov ecx, ebp
+            sub ecx, 8
+            push ecx                 ;push the LIST to add to which is located inside the x86 stack
+            push eax                    ;push thr LINK to add
+            call add_to_list
+            add esp, 8                  ;undo pushes for add_to_list
+            
+            pop esi                     ;restore esi to what it was before calling add_to_list
+            pop edi                     ;restore edi to what it was before calling add_to_list
+
+        push dword [ebp-8]              ;send link which holds 1 to shift_l
+        push dword [ebp+8]              ;send k to shift_l
+        call shift_l
+        add esp, 8
+
+        mov dword [ebp-8], eax          ;now [ebp-8] holds the list that represents 2^k
+
+    ;initialize acc list size in [ebp-12]
+        push dword [ebp-8]             ;send acc to function len to retrive acc length
+        call len
+        mov dword [ebp-12], eax         ;hold acc length in [ebp-12]
+
+    ;initialize res
+        mov dword [ebp-16], 0
+
 
 
 
@@ -898,7 +970,7 @@ shift_r:
     return_shift_r:
 
     ;****
-    add esp, 8                      ;clean local variables
+    add esp, 16                      ;clean local variables
     mov esp, ebp
     pop ebp
 
@@ -1356,6 +1428,36 @@ len:
 
     return_len:
     mov eax, ecx
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+get_last_link:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    ;[ebp+8]- list to retrive its last link
+
+    mov esi, dword [ebp+8]          ;curr link
+    
+    cmp esi, 0
+    je return_len
+    
+    loop_get_last_link:
+        cmp dword [esi+1], 0
+        je return_get_last_link
+        mov esi, dword [esi+1]
+
+        jmp loop_get_last_link
+    
+
+    return_get_last_link:
+    mov eax, esi
+    
+
     ;****
     mov esp, ebp
     pop ebp
