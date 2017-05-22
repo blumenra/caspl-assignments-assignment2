@@ -673,9 +673,6 @@ exec_sp_plus:
 
     ret
 
-
-exec_sp_r:
-
 exec_sp_l:
     push ebp
     mov ebp, esp
@@ -724,6 +721,81 @@ exec_sp_l:
 
     ret
 
+shift_l:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    ;[ebp+8] is k
+    ;[ebp+12] is n
+
+
+    sub esp, 4                  ;allocate space for local variable which will hold the int k value
+    sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
+
+
+    mov dword [ebp-4], 0        ;initialize the space which will hold the int k with 0
+    mov eax, dword [ebp+12]     ;initialize the return result list with 0
+    mov dword [ebp-8], eax      ;initialize the return result list with 0
+
+    ;convert k from BCD to int
+        mov esi, dword [ebp+8]  ;put in esi the list which represents k in BCD
+        mov ecx, 0
+        mov edx, 0
+        mov cl, byte [esi]
+        mov dl, byte [esi]
+
+        ;convert the LEFT nibble to int
+            shr cl, 4
+    
+        ;convert the RIGHT nibble to int
+            shl dl, 4
+            shr dl, 4
+
+        ;merge to above two into a proper integer
+            mov eax, 0          ;initialize the mulitipicand with 0
+            mov ebx, 0          ;initialize the multoplier with 0
+            mov al, cl          ;put in al the mulitipicand
+            mov bl, 10          ;multoplier
+            mul bl              ;al*10
+            add ax, dx
+
+        ;**careful! maybe should be just ax
+        mov dword [ebp-4], eax
+
+    ;start multiplying n by 2 k times
+
+        mov ecx, 0
+
+        loop_multiply_by_2:
+            cmp ecx, dword [ebp-4]  ;check if ecx < k
+            je end_loop_multiply_by_2
+
+            push ecx                ;backup counter
+
+            push dword [ebp-8]
+            push dword [ebp-8]
+            call add
+            add esp, 8
+
+            pop ecx                 ;restore counter
+            
+            mov dword [ebp-8], eax
+            inc ecx
+
+            jmp loop_multiply_by_2
+
+
+        end_loop_multiply_by_2:
+
+    ;****
+    mov eax, dword [ebp-8]
+    add esp, 8                      ;clean local variables
+    mov esp, ebp
+    pop ebp
+
+    ret
+
 add:
     push ebp
     mov ebp, esp
@@ -755,50 +827,52 @@ add:
         ;both esi and edi DIDNT get to the end of their lists
             mov al, byte [esi]          ;save the data of the link esi is poiting at
             mov bl, byte [edi]
-            jmp conv_right_nibble_if_greater_than_7
+            jmp conv_right_nibbles_if_sum_greater_than_15
 
 
         esi_link_got_to_end:
             cmp edi, 0
             je check_for_last_cflag     ;if also edi got to end of list 2, go check if there was a carry along the calculation
             mov bl, byte [edi]
-            jmp conv_right_nibble_if_greater_than_7
+            jmp conv_right_nibbles_if_sum_greater_than_15
 
 
         edi_link_got_to_end:
             cmp esi, 0
             je check_for_last_cflag     ;if also esi got to end of list 2, go check if there was a carry along the calculation
             mov bl, byte [esi]
-            jmp conv_right_nibble_if_greater_than_7
+            jmp conv_right_nibbles_if_sum_greater_than_15
         
-        conv_right_nibble_if_greater_than_7:
-            mov ecx, 0
-            mov edx, 0
-            mov cl, al
-            mov dl, bl
+        conv_right_nibbles_if_sum_greater_than_15:
+            mov ecx, 0                  ;initialize cl for coming use
+            mov edx, 0                  ;initialize dl for coming use
+            mov cl, al                  ;copy al to cl
+            mov dl, bl                  ;copy al to dl
 
-            shl cl, 4
-            shr cl, 4
-            
-            shl dl, 4
-            shr dl, 4
+            ;leave only the right nibbles of the two byte
+                shl cl, 4
+                shr cl, 4
+                
+                shl dl, 4
+                shr dl, 4
 
             add cl, dl
             cmp cl, 00010000b
             jl do_daa                   ;if the sum of the both right nibbles are LESS than 16, do nothing!
 
-            sub cl, 00001010b
-            ;sub cl, 10h
-            shr al, 4
-            add al, 1
-            shl al, 4
+            sub cl, 00001010b           ;sub 10 from the previous sum
 
-            or al, cl
+            ;leave only the left nibble of al, with adding carry of 1 to it
+                shr al, 4
+                add al, 1
+                shl al, 4
 
-            shr bl, 4
-            shl bl, 4
+            ;restore al to be the new converted al
+                or al, cl
 
-
+            ;leave only the left nibble of bl
+                shr bl, 4
+                shl bl, 4
 
         do_daa:
             add al, bl
@@ -906,93 +980,6 @@ add:
     pop ebp
 
     ret
-
-shift_l:
-    push ebp
-    mov ebp, esp
-    ;****
-
-    ;[ebp+8] is k
-    ;[ebp+12] is n
-
-
-
-    sub esp, 4                  ;allocate space for local variable which will hold the int k value
-    sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
-
-
-    mov dword [ebp-4], 0        ;initialize the space which will hold the int k with 0
-    mov eax, dword [ebp+12]     ;initialize the return result list with 0
-    mov dword [ebp-8], eax      ;initialize the return result list with 0
-
-    ;convert k from BCD to int
-        mov esi, dword [ebp+8]  ;put in esi the list which represents k in BCD
-        mov ecx, 0
-        mov edx, 0
-        mov cl, byte [esi]
-        mov dl, byte [esi]
-
-        ;convert the LEFT nibble to int
-            shr cl, 4
-    
-        ;convert the RIGHT nibble to int
-            shl dl, 4
-            shr dl, 4
-
-        ;merge to above two into a proper integer
-            mov eax, 0          ;initialize the mulitipicand with 0
-            mov ebx, 0          ;initialize the multoplier with 0
-            mov al, cl          ;put in al the mulitipicand
-            mov bl, 10          ;multoplier
-            mul bl              ;al*10
-            add ax, dx
-
-        ;**careful! maybe should be just ax
-        mov dword [ebp-4], eax
-
-    ;start multiplying n by 2 k times
-
-        mov ecx, 0
-
-        loop_multiply_by_2:
-            cmp ecx, dword [ebp-4]  ;check if ecx < k
-            je end_loop_multiply_by_2
-
-            push ecx                ;backup counter
-
-            push dword [ebp-8]
-            push dword [ebp-8]
-            call add
-            add esp, 8
-
-            pop ecx                 ;restore counter
-            
-            mov dword [ebp-8], eax
-            inc ecx
-
-            ;pushad
-            ;push dword [ebp-8]
-            ;call print_num
-            ;add esp, 4
-            ;popad
-
-            jmp loop_multiply_by_2
-
-
-
-
-        end_loop_multiply_by_2:
-
-    ;****
-    mov eax, dword [ebp-8]
-    add esp, 8                      ;clean local variables
-    mov esp, ebp
-    pop ebp
-
-    ret
-
-
-
 
 print_num:
     push ebp
@@ -1131,7 +1118,6 @@ print_stack:
     pop ebp
 
     ret
-
 
 check_special_command:
     push ebp
