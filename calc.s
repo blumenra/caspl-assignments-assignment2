@@ -889,6 +889,28 @@ shift_r:
     sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
     sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
 
+    initialize_res:
+    ;initialize res
+        ;create a list which will hold the return value
+        ;create a new link
+            push edi                    ;backup edi because it might change during malloc
+            push esi                    ;backup esi because it might change during malloc
+
+            push 5                      ;push amount of bytes malloc should allocate (1 for data and 4 for address)
+            call malloc                 ;return value is saved in reg eax (the address of the new memory space in heap)!
+            test eax, eax
+            jz   fail_exit
+            add esp,4                   ;undo push for malloc
+
+            pop esi                     ;restore esi to what it was before calling malloc
+            pop edi                     ;restore edi to what it was before calling malloc
+
+        ;initialize the new link
+            mov ebx, 0
+            mov byte [eax], bl
+            mov dword [eax+1], 0
+            mov dword [ebp-16], eax
+
     ;check if exp is not too large
         mov eax, 0
         mov ebx, dword [ebp+8]
@@ -950,9 +972,7 @@ shift_r:
             call len
             mov dword [ebp-12], eax         ;hold acc length in [ebp-12]
         
-        initialize_res:
-        ;initialize res
-            mov dword [ebp-16], 0
+
 
         loot_shift_r:
             ;conpare list lengths
@@ -989,7 +1009,7 @@ shift_r:
                 mov cl, byte [esi]
                 cmp byte [edi], cl
                 ;acc >= n
-                jae acc_bigger_than_n
+                ja acc_bigger_than_n
 
             b4:
             acc_still_smaller_than_n:
@@ -1000,21 +1020,8 @@ shift_r:
                     call add
                     add esp, 8
                     mov dword [ebp-8], eax
-                inc dword [ebp-16]          ;inc res
 
-                ;update acc length
-                    push dword [ebp-8]             ;send acc to function len to retrive acc length
-                    call len
-                    mov dword [ebp-12], eax         ;hold acc length in [ebp-12]
-
-            jmp loot_shift_r
-
-
-    return_shift_r:
-
-
-    acc_bigger_than_n:
-        ;create a list which will hold the return value
+            ;create a list which will hold the value number 1
             ;create a new link
                 push edi                    ;backup edi because it might change during malloc
                 push esi                    ;backup esi because it might change during malloc
@@ -1029,9 +1036,30 @@ shift_r:
                 pop edi                     ;restore edi to what it was before calling malloc
 
             ;initialize the new link
-                mov ebx, dword [ebp-16]
-                mov byte [eax], bl
+                mov byte [eax], 00000001b
                 mov dword [eax+1], 0
+                
+                ;inc res
+                    push eax
+                    push dword [ebp-16]
+                    call add
+                    add esp, 8
+                    mov dword [ebp-16], eax
+
+
+                ;update acc length
+                    push dword [ebp-8]             ;send acc to function len to retrive acc length
+                    call len
+                    mov dword [ebp-12], eax         ;hold acc length in [ebp-12]
+
+            jmp loot_shift_r
+
+
+    return_shift_r:
+
+
+    acc_bigger_than_n:
+        mov eax, dword [ebp-16]
 
 
 
