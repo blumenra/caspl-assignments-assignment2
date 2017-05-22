@@ -677,6 +677,52 @@ exec_sp_plus:
 exec_sp_r:
 
 exec_sp_l:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    sub esp, 4                  ;allocate space for local variable which will hold the FIRST argument of the addition in [ebp-4]
+    sub esp, 4                  ;allocate space for local variable which will hold the SECOND argument of the addition in [ebp-8]
+    
+    call pop_stack
+    cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
+    je return_sp_l           ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+
+    mov dword [ebp-4], eax      ;assign the FIRST poped arg in [ebp-4]
+    
+    call pop_stack
+    cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
+    je restore_stack_sp_l    ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+
+    mov dword [ebp-8], eax      ;assign the SECOND poped arg in [ebp-8]
+
+
+    push dword [ebp-8]          ;send the SECOND poped argument to the function
+    push dword [ebp-4]          ;send the first poped argument to the function
+    call shift_l
+    add esp, 8                  ;undo pushes for the above function
+
+    push eax
+    call push_stack
+    add esp, 4
+    jmp return_sp_l
+
+
+    restore_stack_sp_l:
+        push dword [ebp-4]      ;send the first poped argument to the stack
+        call push_stack
+        add esp, 4              ;undo push for the above function
+        mov eax, 0              ;assign FALSE in the return value
+        jmp return_sp_l
+
+
+    return_sp_l:
+    add esp, 8                  ;clean two local variables
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
 
 add:
     push ebp
@@ -834,12 +880,100 @@ add:
 
     ret
 
+shift_l:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    ;[ebp+8] is k
+    ;[ebp+12] is n
+
+
+
+    sub esp, 4                  ;allocate space for local variable which will hold the int k value
+    sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
+
+
+    mov dword [ebp-4], 0        ;initialize the space which will hold the int k with 0
+    mov eax, dword [ebp+12]     ;initialize the return result list with 0
+    mov dword [ebp-8], eax      ;initialize the return result list with 0
+
+    ;convert k from BCD to int
+        mov esi, dword [ebp+8]  ;put in esi the list which represents k in BCD
+        mov ecx, 0
+        mov edx, 0
+        mov cl, byte [esi]
+        mov dl, byte [esi]
+
+        ;convert the LEFT nibble to int
+            shr cl, 4
+    
+        ;convert the RIGHT nibble to int
+            shl dl, 4
+            shr dl, 4
+
+        ;merge to above two into a proper integer
+            mov eax, 0          ;initialize the mulitipicand with 0
+            mov ebx, 0          ;initialize the multoplier with 0
+            mov al, cl          ;put in al the mulitipicand
+            mov bl, 10          ;multoplier
+            mul bl              ;al*10
+            add ax, dx
+
+        ;**careful! maybe should be just ax
+        mov dword [ebp-4], eax
+
+    ;start multiplying n by 2 k times
+
+        mov ecx, 0
+
+        loop_multiply_by_2:
+            cmp ecx, dword [ebp-4]  ;check if ecx < k
+            je end_loop_multiply_by_2
+
+            push ecx                ;backup counter
+
+            push dword [ebp-8]
+            push dword [ebp-8]
+            call add
+            add esp, 8
+
+            pop ecx                 ;restore counter
+            
+            mov dword [ebp-8], eax
+            inc ecx
+
+            ;pushad
+            ;push dword [ebp-8]
+            ;call print_num
+            ;add esp, 4
+            ;popad
+
+            jmp loop_multiply_by_2
+
+
+
+
+        end_loop_multiply_by_2:
+
+    ;****
+    mov eax, dword [ebp-8]
+    add esp, 8                      ;clean local variables
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+
+
+
 print_num:
     push ebp
     mov ebp, esp
     ;****
 
     mov esi, dword [ebp+8]  ;save the list sent as argument inside esi
+    
     
     ;print prompt arrow
         ;////////////////
@@ -848,6 +982,12 @@ print_num:
             call printf
             add esp, 8
         ;////////////////
+    
+    cmp esi, 0
+    jne print_num_for
+
+    mov eax, 0
+    jmp return_print_num
 
     print_num_for:
         cmp dword [esi+1], 0             ;check if it is the end of the list
@@ -930,7 +1070,7 @@ print_num:
         ;////////////////
 
     ;****
-    add esp, 1
+    ;add esp, 1
     mov esp, ebp
     pop ebp
 
