@@ -64,3 +64,17 @@ call print_for_myself
     add esp, 8
     pop eax
     ;---
+
+
+
+        ;---
+    push eax
+    push eax
+    call get_last_link
+    add esp, 4
+
+    push eax
+    call print_num
+    add esp, 4
+    pop eax
+    ;---
