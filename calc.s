@@ -740,7 +740,7 @@ add:
             jmp cont_1
 
         esi_link_got_to_one_before_end:
-            mov cl, byte [esi]
+            mov cl, 0
             cmp dword [ebp-8], 0
             je put_in_dl_curr_link_data
             mov ebx, dword [ebp-8] 
@@ -748,7 +748,7 @@ add:
             jmp cont_1
 
         edi_link_got_to_one_before_end:
-            mov dl, byte [edi]
+            mov dl, 0
             cmp dword [ebp-4], 0
             je put_in_cl_curr_link_data
             mov ebx, dword [ebp-4]
@@ -870,9 +870,9 @@ add:
         cf_add_another_link:
         
         ;if on the last two links the cflag was up- we need to create a new link with 1
-            cmp dword [ebp-4], 0
+            cmp esi, 0
             jne loop_lists_addition
-            cmp dword [ebp-8], 0
+            cmp edi, 0
             jne loop_lists_addition
 
 
