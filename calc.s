@@ -926,15 +926,19 @@ add:
             jmp do_daa2
 
         do_daa:
-            mov dword [ebp-8], 0              ;initialize our cflag with 0
             add eax, dword [ebp-8]            ;add the carry (if there was any) from last addition
         
         do_daa2:
             add al, bl
             daa
 
-            jnb cont
+            jnb conton
                 mov dword [ebp-8], 1          ;put in our cflag 1 if cflag was set
+                jmp cont
+            
+            conton:
+                mov dword [ebp-8], 0              ;initialize our cflag with 0
+
         cont:
             ;create a new link
                 mov ebx, 0                  ;initialize ebx with 0
