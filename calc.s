@@ -815,6 +815,96 @@ shift_l:
     ret
 
 exec_sp_r:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    sub esp, 4                  ;allocate space for local variable which will hold k
+    sub esp, 4                  ;allocate space for local variable which will hold n
+
+    
+    call pop_stack
+    cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
+    je return_sp_r           ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+
+    mov dword [ebp-4], eax      ;assign the FIRST poped arg in [ebp-4]
+    
+    call pop_stack
+    cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
+    je restore_stack_sp_r    ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+
+    mov dword [ebp-8], eax      ;assign the SECOND poped arg in [ebp-8]
+
+
+    push dword [ebp-8]          ;send the SECOND poped argument to the function
+    push dword [ebp-4]          ;send the first poped argument to the function
+    call shift_r
+    add esp, 8                  ;undo pushes for the above function
+    cmp eax, 0
+    je print_exp_too_large_error
+
+    push eax
+    call push_stack
+    add esp, 4
+    jmp return_sp_r
+
+
+    restore_stack_sp_r:
+        push dword [ebp-8]      ;send the second poped argument to the stack
+        call push_stack
+        add esp, 4              ;undo push for the above function
+        
+        push dword [ebp-4]      ;send the first poped argument to the stack
+        call push_stack
+        add esp, 4              ;undo push for the above function
+        
+        mov eax, 0              ;assign FALSE in the return value
+        jmp return_sp_r
+
+
+    return_sp_r:
+    add esp, 8                  ;clean two local variables
+    ;****
+    mov esp, ebp
+    pop ebp
+
+    ret
+
+
+shift_r:
+    push ebp
+    mov ebp, esp
+    ;****
+
+    ;[ebp+8] is k
+    ;[ebp+12] is n
+
+
+    sub esp, 4                  ;allocate space for local variable which will hold the int k value
+    sub esp, 4                  ;allocate space for local variable which will hold the result of the shift left
+
+    ;check if exp is not too large
+        mov eax, 0
+        mov ebx, dword [ebp+8]
+        cmp dword [ebx+1], 0
+        jne return_shift_r
+
+
+
+
+
+
+
+
+    return_shift_r:
+
+    ;****
+    add esp, 8                      ;clean local variables
+    mov esp, ebp
+    pop ebp
+
+    ret
+
 
 add:
     push ebp
