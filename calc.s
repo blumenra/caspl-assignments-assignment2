@@ -796,6 +796,8 @@ shift_l:
 
     ret
 
+exec_sp_r:
+
 add:
     push ebp
     mov ebp, esp
