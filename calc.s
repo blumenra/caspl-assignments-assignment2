@@ -754,25 +754,54 @@ add:
 
         ;both esi and edi DIDNT get to the end of their lists
             mov al, byte [esi]          ;save the data of the link esi is poiting at
-            add al, byte [edi]          ;add to al the data of the link edi is poiting at
-            jmp do_daa
+            mov bl, byte [edi]
+            jmp conv_right_nibble_if_greater_than_7
 
 
         esi_link_got_to_end:
             cmp edi, 0
             je check_for_last_cflag     ;if also edi got to end of list 2, go check if there was a carry along the calculation
-            add al, byte [edi]
-            jmp do_daa
+            mov bl, byte [edi]
+            jmp conv_right_nibble_if_greater_than_7
 
 
         edi_link_got_to_end:
             cmp esi, 0
             je check_for_last_cflag     ;if also esi got to end of list 2, go check if there was a carry along the calculation
-            add al, byte [esi]
-            jmp do_daa
+            mov bl, byte [esi]
+            jmp conv_right_nibble_if_greater_than_7
         
+        conv_right_nibble_if_greater_than_7:
+            mov ecx, 0
+            mov edx, 0
+            mov cl, al
+            mov dl, bl
+
+            shl cl, 4
+            shr cl, 4
+            
+            shl dl, 4
+            shr dl, 4
+
+            add cl, dl
+            cmp cl, 00010000b
+            jl do_daa                   ;if the sum of the both right nibbles are LESS than 16, do nothing!
+
+            sub cl, 00001010b
+            ;sub cl, 10h
+            shr al, 4
+            add al, 1
+            shl al, 4
+
+            or al, cl
+
+            shr bl, 4
+            shl bl, 4
+
+
 
         do_daa:
+            add al, bl
             add eax, dword [ebp-8]            ;add the carry (if there was any) from last addition
             daa
             mov dword [ebp-8], 0              ;initialize our cflag with 0
