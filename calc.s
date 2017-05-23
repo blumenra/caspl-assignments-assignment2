@@ -13,7 +13,6 @@ STACK_CAPACITY: equ 5
 
 section .rodata
     str_newlinw: DB  0
-    str: DB "Hello World", 0
     format_strln: DB "%s", 10, 0
     format_str: DB "%s", 0
     format_int: DD "%d"
@@ -82,7 +81,7 @@ main:
     
     ;print the number of successful operations returned from my_calc
         ;////////////////
-        push eax
+        push eax            ;eax holds the result for number of successful operations returned from my_calc
         push format_int
         call printf
         add esp, 8
@@ -99,12 +98,11 @@ main:
     mov esp, ebp    ; return esp to its original place in the beginning of main
     pop ebp         ; pop ebp because we pushed it at the beginning of main
 
-    push 0            ; return value of exit
+    push 0              ; return value of exit
     call exit
-    add esp, 4
+    add esp, 4          ;undo push for exit
 
     ret
-
 
 
 my_calc:
@@ -206,7 +204,6 @@ my_calc:
     pop ebp
 
     ret
-
 
 
 add_to_list:
@@ -1772,80 +1769,6 @@ print_exp_too_large_error:
     mov eax, 0
     jmp return_sp_shift
 
-func_format:
-    push ebp
-    mov ebp, esp
-    ;****
-
-
-    ;<func code>
-    ;mov eax, <return value>
-    
-
-    ;****
-    mov esp, ebp
-    pop ebp
-
-    ret
-
-print_for_myself:
-    pushad
-    pushfd
-    push ebp
-    mov ebp, esp
-    ;****
-
-    ;////////////////
-    push str
-    push format_strln
-    call printf
-    add esp, 8
-    ;////////////////
-
-    ;****
-    mov esp, ebp
-    pop ebp
-    popfd
-    popad
-
-    ret
-
-fail_exit:
-    push fail_exit_msg
-    push format_strln
-    call printf
-    add esp, 8
-
-    push 0
-    call exit
-
-debug_print_input:
-    pushad
-    pushfd
-    push ebp
-    mov ebp, esp
-    ;****
-
-    section .data
-        debug_input_msg: DB "You entered %s", 0
-
-    section .text
-        ;*print "You entered %s"
-        push input
-        push debug_input_msg
-        push dword [stderr]
-        call fprintf
-        add esp, 12
-        ;*
-
-    ;****
-    mov esp, ebp
-    pop ebp
-    popfd
-    popad
-
-    ret
-
 debug_print_stack:
     pushad
     pushfd
@@ -1950,46 +1873,38 @@ print_stack_size:
 
     ret
 
-debug_print_format:
-    ;**************
-    ;debug check of input
-        ;cmp dword [debug], 1
-        ;jne end_debug_1
+debug_print_input:
+    pushad
+    pushfd
+    push ebp
+    mov ebp, esp
+    ;****
 
-        ;section .data
-            ;debug_input_msg: DB "You entered %s", 0
-            ;debug_stack_size_msg: DB "Stack size is %d", 10, 0
+    section .data
+        debug_input_msg: DB "You entered %s", 0
 
-        ;section .text
-        
-            ;*print "You entered %s"
-            ;push print_arrow
-            ;push format_str
-            ;push dword [stderr]
-            ;call fprintf
-            ;add esp, 12
+    section .text
+        ;*print "You entered %s"
+        push input
+        push debug_input_msg
+        push dword [stderr]
+        call fprintf
+        add esp, 12
+        ;*
 
-            ;push input
-            ;push debug_input_msg
-            ;push dword [stderr]
-            ;call fprintf
-            ;add esp, 12
-            ;*
+    ;****
+    mov esp, ebp
+    pop ebp
+    popfd
+    popad
 
-            ;*print "Stack size is %d"
-            ;push print_arrow
-            ;push format_str
-            ;push dword [stderr]
-            ;call fprintf
-            ;add esp, 12
+    ret
 
-            ;push dword [stack_counter]
-            ;push debug_stack_size_msg
-            ;push dword [stderr]
-            ;call fprintf
-            ;add esp, 12
-            ;*
+fail_exit:
+    push fail_exit_msg
+    push format_strln
+    call printf
+    add esp, 8
 
-        ;end_debug_1:
-    ;**************
-
+    push 0
+    call exit
