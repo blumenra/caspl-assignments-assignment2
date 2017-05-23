@@ -1727,11 +1727,24 @@ print_exp_too_large_error:
     call printf
     add esp, 8
 
+    restore_stack_sp_shift_exp_error:
+        
+        push dword [ebp-8]      ;send the first poped argument to the stack
+        call push_stack
+        add esp, 4              ;undo push for the above function
+
+        push dword [ebp-4]      ;send the first poped argument to the stack
+        call push_stack
+        add esp, 4              ;undo push for the above function
+
+        mov eax, 0              ;assign FALSE in the return value
+        jmp return_sp_shift
+
     popfd
     popad
     
     mov eax, 0
-    jmp restore_stack_sp_shift
+    jmp return_sp_shift
 
 func_format:
     push ebp
