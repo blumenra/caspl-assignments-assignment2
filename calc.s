@@ -490,11 +490,15 @@ handle_special_commands:
         jmp return_handle_special_commands
     
     call_exec_sp_r:
+        push shift_r
         call exec_sp_r
+        add esp, 4
         jmp return_handle_special_commands
 
     call_exec_sp_l:
+        push shift_l
         call exec_sp_l
+        add esp, 4
         jmp return_handle_special_commands
 
 
@@ -902,6 +906,7 @@ shift_r:
             mov dword [ebp-4], eax
         
         initialize_acc:
+            mov dword [ebp-8], 0
         ;create a list which will hold the value number 1
             ;create a new link
                 push edi                    ;backup edi because it might change during malloc
@@ -919,6 +924,7 @@ shift_r:
             ;initialize the new link
                 mov byte [eax], 00000001b
                 mov dword [eax+1], 0
+ 
             ;add the new link to the result link
                 push edi                    ;backup edi cbecause it might change during add_to_list
                 push esi                    ;backup esi cbecause it might change during add_to_list
@@ -929,7 +935,7 @@ shift_r:
                 push eax                    ;push thr LINK to add
                 call add_to_list
                 add esp, 8                  ;undo pushes for add_to_list
-                
+
                 pop esi                     ;restore esi to what it was before calling add_to_list
                 pop edi                     ;restore edi to what it was before calling add_to_list
 
