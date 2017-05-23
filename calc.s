@@ -611,6 +611,16 @@ exec_sp_d:
         push dword [ebp-8]
         call push_stack
         add esp, 4                      ;undo pushes for push_stack
+        
+        ;debug check of result push
+            cmp dword [debug], 0
+            je end_debug_push_result
+            push dword [ebp-8]
+            call debug_print_push_result
+            add esp, 4
+            end_debug_push_result:
+
+
         cmp eax, 0
         ;je free_list
 
@@ -1821,12 +1831,6 @@ debug_print_input:
 
     section .text
         ;*print "You entered %s"
-        push print_arrow
-        push format_str
-        push dword [stderr]
-        call fprintf
-        add esp, 12
-
         push input
         push debug_input_msg
         push dword [stderr]
@@ -1856,6 +1860,38 @@ debug_print_stack:
     ;*print "Stack:"
         push input
         push debug_print_stack_msg
+        push dword [stderr]
+        call fprintf
+        add esp, 12
+
+        call print_stack
+    ;*
+
+    ;****
+    mov esp, ebp
+    pop ebp
+    popfd
+    popad
+
+    ret
+
+debug_print_push_result:
+    pushad
+    pushfd
+    push ebp
+    mov ebp, esp
+    ;****
+
+    section .data
+        debug_print_push_msg1: DB "The result ", 0
+        debug_print_push_msg2: DB " was pushed to the stack", 10 , 0
+
+    section .text
+    ;*print "Stack:"
+        push eax
+
+        push input
+        push debug_print_push_msg1
         push dword [stderr]
         call fprintf
         add esp, 12
