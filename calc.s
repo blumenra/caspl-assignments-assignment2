@@ -1005,35 +1005,43 @@ shift_r:
             ;len(acc) == len(n)
                 ;hold in esi and edi the last links of n and acc
                 
-                cmp dword [ebp-28], 0
-                jne cont_eq_shifr_r
+                ;cmp dword [ebp-28], 0
+                ;jne cont_eq_shifr_r
                 ;get last link of acc
                     push dword [ebp-8]
                     call get_last_link
                     add esp, 4
                     mov dword [ebp-28], eax
                 
+                    push dword [ebp+12]
+                    call get_last_link
+                    add esp, 4
+                    mov dword [ebp-24], eax
+
+
+
                 cont_eq_shifr_r:
 
-                    mov ecx, dword [ebp-24]
-                    mov edx, dword [ebp-28]
-                    mov cl, byte [ecx]
-                    mov dl, byte [edx]
+                    mov ecx, 0
+                    mov edx, 0
+                    mov eax, dword [ebp-24]
+                    mov ebx, dword [ebp-28]
+                    mov cl, byte [eax]
+                    mov dl, byte [ebx]
                     cmp dl, cl
                     ja acc_bigger_than_n
                     
                     ;acc <= n
-                    cmp dl, cl
-                    alon:
-                    jb acc_still_smaller_than_n
+                        cmp dl, cl
+                        alon:
+                        jb acc_still_smaller_than_n
                     
 
                     ;acc==n
-                    mov esi, dword [ebp+12]                 ;point esi on the beginning of n
+                        mov esi, dword [ebp+12]                 ;point esi on the beginning of n
                     
                     set_curr_link_of_n_to_privious:
                         
-
 
                         cmp esi, dword [ebp-24]                 ;cmp between the first link and the curr link in n
                         je got_to_first_links                   ;if it equals, it means that the previous link is the first link again so return
@@ -1046,6 +1054,9 @@ shift_r:
 
                         found_previous_link_n:
                         mov dword [ebp-24], esi
+;----
+call print_for_myself
+;----
                         
                         mov edi, dword [ebp-8]
 
@@ -1057,7 +1068,7 @@ shift_r:
                         je found_previous_link_acc
 
                         mov edi, [edi+1]
-                        jmp set_curr_link_of_acc_to_privious
+                        jmp cont_eq_shifr_r
 
                         found_previous_link_acc:
                             mov dword [ebp-28], edi
@@ -1094,6 +1105,8 @@ shift_r:
                     push dword [ebp-8]             ;send acc to function len to retrive acc length
                     call len
                     mov dword [ebp-12], eax         ;hold acc length in [ebp-12]
+
+                
 
             jmp loot_shift_r
 

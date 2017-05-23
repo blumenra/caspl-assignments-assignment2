@@ -50,7 +50,7 @@ tests:
 call print_for_myself
 ;----
 
-
+0x0804c838
 
     ;---
     push eax
@@ -72,3 +72,26 @@ call print_for_myself
             add esp, 4
             popad
             ;---
+
+;---
+pushad
+push dword [ebp-8]
+call print_num
+add esp, 4
+popad
+;---
+;---
+pushad
+push dword [ebp-12]
+push format_int
+call printf
+add esp, 8
+popad
+;---
+;print newline
+;////////////////
+push str_newlinw
+push format_strln
+call printf
+add esp, 8
+;////////////////
