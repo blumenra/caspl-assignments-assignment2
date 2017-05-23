@@ -147,7 +147,7 @@ my_calc:
         ;debug check of input
             cmp dword [debug], 0
             je end_debug_1
-            ;call debug_print_input
+            call debug_print_input
             end_debug_1:
             
             ;clean initial zeros
@@ -657,9 +657,23 @@ exec_sp_plus:
     call add
     add esp, 8                  ;undo pushes for the above function
 
+    ;debug check of result push
+        push eax
+
+        cmp dword [debug], 0
+        je end_debug_push_result_plus
+        push eax
+        call debug_print_push_result
+        add esp, 4
+        
+        pop eax
+        end_debug_push_result_plus:
+
     push eax
     call push_stack
     add esp, 4
+
+    
     jmp return_sp_plus
 
 
@@ -707,6 +721,18 @@ exec_sp_shift:
     add esp, 8                  ;undo pushes for the above function
     cmp eax, 0
     je print_exp_too_large_error
+
+    ;debug check of result push
+        push eax
+
+        cmp dword [debug], 0
+        je end_debug_push_result_shift
+        push eax
+        call debug_print_push_result
+        add esp, 4
+        
+        pop eax
+        end_debug_push_result_shift:
 
     push eax
     call push_stack
