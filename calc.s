@@ -1482,12 +1482,27 @@ print_stack:
     mov ebp, esp
     ;****
 
+    section .data
+        debug_print_pipes: DB "||", 0
+
+    section .text
     mov ecx, 0
+
     
     loop_print_stack:
         mov edx, dword [stack_counter]
         cmp ecx, edx
         je return_print_stack
+
+        pushad
+        ;print '||'
+        ;////////////////
+        push debug_print_pipes
+        push format_str
+        call printf
+        add esp, 8
+        ;///////////////
+        popad
 
         push ecx
         push dword [stack+4*ecx]
