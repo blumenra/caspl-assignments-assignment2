@@ -491,13 +491,13 @@ handle_special_commands:
     
     call_exec_sp_r:
         push shift_r
-        call exec_sp_r
+        call exec_sp_shift
         add esp, 4
         jmp return_handle_special_commands
 
     call_exec_sp_l:
         push shift_l
-        call exec_sp_l
+        call exec_sp_shift
         add esp, 4
         jmp return_handle_special_commands
 
@@ -679,7 +679,7 @@ exec_sp_plus:
 
     ret
 
-exec_sp_l:
+exec_sp_shift:
     push ebp
     mov ebp, esp
     ;****
@@ -690,20 +690,20 @@ exec_sp_l:
 
     call pop_stack
     cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
-    je return_sp_l           ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+    je return_sp_shift           ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
 
     mov dword [ebp-4], eax      ;assign the FIRST poped arg in [ebp-4]
     
     call pop_stack
     cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
-    je restore_stack_sp_l    ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+    je restore_stack_sp_shift    ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
 
     mov dword [ebp-8], eax      ;assign the SECOND poped arg in [ebp-8]
 
 
     push dword [ebp-8]          ;send the SECOND poped argument to the function
     push dword [ebp-4]          ;send the first poped argument to the function
-    call shift_l
+    call dword [ebp+8]          ;execute the function that was sent to exec_sp_shift as argument
     add esp, 8                  ;undo pushes for the above function
     cmp eax, 0
     je print_exp_too_large_error
@@ -711,19 +711,19 @@ exec_sp_l:
     push eax
     call push_stack
     add esp, 4
-    jmp return_sp_l
+    jmp return_sp_shift
 
 
-    restore_stack_sp_l:
+    restore_stack_sp_shift:
         push dword [ebp-4]      ;send the first poped argument to the stack
         call push_stack
         add esp, 4              ;undo push for the above function
         
         mov eax, 0              ;assign FALSE in the return value
-        jmp return_sp_l
+        jmp return_sp_shift
 
 
-    return_sp_l:
+    return_sp_shift:
     add esp, 8                  ;clean two local variables
     ;****
     mov esp, ebp
@@ -810,58 +810,6 @@ shift_l:
 
     ;****
     add esp, 8                      ;clean local variables
-    mov esp, ebp
-    pop ebp
-
-    ret
-
-exec_sp_r:
-    push ebp
-    mov ebp, esp
-    ;****
-
-    sub esp, 4                  ;allocate space for local variable which will hold k
-    sub esp, 4                  ;allocate space for local variable which will hold n
-
-    
-    call pop_stack
-    cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
-    je return_sp_r           ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
-
-    mov dword [ebp-4], eax      ;assign the FIRST poped arg in [ebp-4]
-    
-    call pop_stack
-    cmp eax, 0                  ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
-    je restore_stack_sp_r    ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
-
-    mov dword [ebp-8], eax      ;assign the SECOND poped arg in [ebp-8]
-
-
-    push dword [ebp-8]          ;send the SECOND poped argument to the function
-    push dword [ebp-4]          ;send the first poped argument to the function
-    call shift_r
-    add esp, 8                  ;undo pushes for the above function
-    cmp eax, 0
-    je print_exp_too_large_error
-
-    push eax
-    call push_stack
-    add esp, 4
-    jmp return_sp_r
-
-
-    restore_stack_sp_r:
-        push dword [ebp-4]      ;send the first poped argument to the stack
-        call push_stack
-        add esp, 4              ;undo push for the above function
-        
-        mov eax, 0              ;assign FALSE in the return value
-        jmp return_sp_r
-
-
-    return_sp_r:
-    add esp, 8                  ;clean two local variables
-    ;****
     mov esp, ebp
     pop ebp
 
@@ -1783,7 +1731,7 @@ print_exp_too_large_error:
     popad
     
     mov eax, 0
-    jmp restore_stack_sp_l
+    jmp restore_stack_sp_shift
 
 func_format:
     push ebp
