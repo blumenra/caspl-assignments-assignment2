@@ -994,25 +994,24 @@ shift_r:
 
                 mov ecx, dword [ebp-12]
                 cmp ecx, dword [ebp-4]
-            b1:
+            
             ;len(acc) < len(n)
                 jl acc_still_smaller_than_n
-            b2:
+            
                 cmp ecx, dword [ebp-4]
             ;len(acc) > len(n)
                 jg acc_bigger_than_n
-            b3:
+            
             ;len(acc) == len(n)
                 ;hold in esi and edi the last links of n and acc
                 
-                ;cmp dword [ebp-28], 0
-                ;jne cont_eq_shifr_r
-                ;get last link of acc
+                ;get last link of acc and set [ebp-28] to it
                     push dword [ebp-8]
                     call get_last_link
                     add esp, 4
                     mov dword [ebp-28], eax
                 
+                ;get last link of n and set [ebp-24] to it
                     push dword [ebp+12]
                     call get_last_link
                     add esp, 4
@@ -1021,7 +1020,6 @@ shift_r:
 
 
                 cont_eq_shifr_r:
-
                     mov ecx, 0
                     mov edx, 0
                     mov eax, dword [ebp-24]
@@ -1033,47 +1031,31 @@ shift_r:
                     
                     ;acc <= n
                         cmp dl, cl
-                        alon:
                         jb acc_still_smaller_than_n
                     
 
                     ;acc==n
                         mov esi, dword [ebp+12]                 ;point esi on the beginning of n
+                        mov edi, dword [ebp-8]
                     
-                    set_curr_link_of_n_to_privious:
-                        
+                    set_curr_link_of_lists_to_privious:
 
                         cmp esi, dword [ebp-24]                 ;cmp between the first link and the curr link in n
                         je got_to_first_links                   ;if it equals, it means that the previous link is the first link again so return
                         mov ecx, dword [ebp-24]                 ;else, check if the next link of the iterator is me
                         cmp dword [esi+1], ecx                  ;else, check if the next link of the iterator is me
-                        je found_previous_link_n                ;if ture, go handle acc
+                        je found_previous_links                ;if ture, go handle acc
 
                         mov esi, dword [esi+1]                        ;else move forward the iterator by one and start over again
-                        jmp set_curr_link_of_n_to_privious
-
-                        found_previous_link_n:
-                        mov dword [ebp-24], esi
-;----
-call print_for_myself
-;----
-                        
-                        mov edi, dword [ebp-8]
-
-                    set_curr_link_of_acc_to_privious:
-                        cmp edi, dword [ebp-28]
-                        je got_to_first_links
-                        mov ecx, dword [ebp-28]
-                        cmp dword [edi+1], ecx
-                        je found_previous_link_acc
-
                         mov edi, [edi+1]
-                        jmp cont_eq_shifr_r
+                        jmp set_curr_link_of_lists_to_privious
 
-                        found_previous_link_acc:
+                        found_previous_links:
+                            mov dword [ebp-24], esi
                             mov dword [ebp-28], edi
 
                         jmp cont_eq_shifr_r
+                        
 
                         got_to_first_links:
                             ;inc res
@@ -1081,9 +1063,9 @@ call print_for_myself
                             call inc_res
                             mov dword [ebp-16], eax
                             jmp acc_bigger_than_n
-            b4:
+            
             acc_still_smaller_than_n:
-            b5:
+            
                 ;add to acc 2^k and put the result in [ebp-8]
                     push dword [ebp-20]
                     push dword [ebp-8]
@@ -1105,10 +1087,9 @@ call print_for_myself
                     push dword [ebp-8]             ;send acc to function len to retrive acc length
                     call len
                     mov dword [ebp-12], eax         ;hold acc length in [ebp-12]
-
                 
-
             jmp loot_shift_r
+
 
 
     acc_bigger_than_n:
