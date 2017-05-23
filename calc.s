@@ -526,6 +526,16 @@ exec_sp_p:
     call pop_stack
     cmp eax, 0                      ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
     je return_handle_special_commands     ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
+    
+    push eax                        ;backup eax
+    ;print prompt arrow
+    ;////////////////
+        push print_arrow
+        push format_str
+        call printf
+        add esp, 8
+    ;////////////////
+    pop eax                         ;restore eax
 
     push eax                        ;send the return value from pop_stack (which is saved in eax) to print
     call print_num
@@ -1374,15 +1384,6 @@ print_num:
 
     mov esi, dword [ebp+8]  ;save the list sent as argument inside esi
     
-    
-    ;print prompt arrow
-        ;////////////////
-            push print_arrow
-            push format_str
-            call printf
-            add esp, 8
-        ;////////////////
-    
     cmp esi, 0
     jne print_num_for
 
@@ -1876,34 +1877,33 @@ debug_print_stack:
     ret
 
 debug_print_push_result:
-    pushad
-    pushfd
     push ebp
     mov ebp, esp
+    pushad
+    pushfd
     ;****
 
     section .data
-        debug_print_push_msg1: DB "The result ", 0
-        debug_print_push_msg2: DB " was pushed to the stack", 10 , 0
+        debug_print_push_msg: DB "The following result was pushed to the stack: ", 0
 
     section .text
-    ;*print "Stack:"
-        push eax
-
-        push input
-        push debug_print_push_msg1
+    ;*print "The result "
+        push debug_print_push_msg
+        push format_str
         push dword [stderr]
         call fprintf
         add esp, 12
 
-        call print_stack
+        push dword [ebp+8]
+        call print_num
+        add esp, 4
     ;*
 
     ;****
-    mov esp, ebp
-    pop ebp
     popfd
     popad
+    mov esp, ebp
+    pop ebp
 
     ret
 
