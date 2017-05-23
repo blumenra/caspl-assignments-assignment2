@@ -1711,6 +1711,13 @@ print_stack_is_empty_error:
 
     pushad
     pushfd
+
+    ;////////////////
+        push print_arrow
+        push format_str
+        call printf
+        add esp, 8
+    ;////////////////
     
     push error_insufficient
     push format_strln
@@ -1726,6 +1733,13 @@ print_stack_is_empty_error:
 print_stack_full_error:
     pushad
     pushfd
+
+    ;////////////////
+        push print_arrow
+        push format_str
+        call printf
+        add esp, 8
+    ;////////////////
 
     push error_overflow
     push format_strln
@@ -1744,6 +1758,13 @@ print_exp_too_large_error:
 
     pushad
     pushfd
+
+    ;////////////////
+        push print_arrow
+        push format_str
+        call printf
+        add esp, 8
+    ;////////////////
     
     push error_expTooLarge
     push format_strln
