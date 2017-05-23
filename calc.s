@@ -140,17 +140,15 @@ my_calc:
             call fgets
             add esp, 12  
         
+        ;handle input
+            cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
+            je prompt
 
         ;debug check of input
             cmp dword [debug], 0
             je end_debug_1
-            call debug_print_input
+            ;call debug_print_input
             end_debug_1:
-        
-
-        ;handle input
-            cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
-            je back_to_prompt
             
             ;clean initial zeros
                 call clean_init_zeros
@@ -542,9 +540,6 @@ exec_sp_d:
     cmp eax, 0                      ;if the pop failed, it returns 0. else the poped value. else eax holds the poped list
     je return_sp_d                  ;if pop failed, go to the label that prints the error that the stack is empty and return 0 in eax
 
-    ;----
-    ;call print_for_myself
-    ;----
 
     sub esp, 4                      ;allocate space on x86 stack for the POPED list (dword [ebp-4])
     sub esp, 4                      ;allocate space on x86 stack for the DUPLICATING list (dword [ebp-8])
@@ -924,7 +919,6 @@ shift_r:
             ;initialize the new link
                 mov byte [eax], 00000001b
                 mov dword [eax+1], 0
-
             ;add the new link to the result link
                 push edi                    ;backup edi cbecause it might change during add_to_list
                 push esi                    ;backup esi cbecause it might change during add_to_list
@@ -1470,7 +1464,7 @@ print_stack:
     ;****
 
     section .data
-        debug_print_pipes: DB "||", 0
+        debug_print_pipes: DB " ||", 0
 
     section .text
 
