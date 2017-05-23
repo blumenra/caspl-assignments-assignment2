@@ -147,16 +147,10 @@ my_calc:
             call debug_print_input
             end_debug_1:
         
-        ;debug check of input
-            cmp dword [debug], 0
-            je end_debug_2
-            call debug_print_stack
-            end_debug_2:
-
 
         ;handle input
             cmp byte [input], 10        ;if the input is empty, start the prompt again and wait for an input
-            je prompt
+            je back_to_prompt
             
             ;clean initial zeros
                 call clean_init_zeros
@@ -177,38 +171,31 @@ my_calc:
             cmp eax, 1
             je inc_op_counter
 
+            jmp back_to_prompt
+
+
+        handle_numeric:
+            call handle_numeric_input   ;if it is an numeric input, jump to the label that handles it
+            
+            jmp back_to_prompt            
+        
+        inc_op_counter:
+            inc dword [ebp-4]
+
+        back_to_prompt:
+            ;debug check of input
+                cmp dword [debug], 0
+                je end_debug_2
+                call debug_print_stack
+                end_debug_2:
+
             ;debug
                 cmp dword [debug], 0
                 je end_debug_3
                 call print_stack_size
                 end_debug_3:
 
-            jmp prompt
-
-
-        handle_numeric:
-            call handle_numeric_input   ;if it is an numeric input, jump to the label that handles it
-
-
-            ;cmp eax, 1
-            ;debug
-                cmp dword [debug], 0
-                je end_debug_5
-                call print_stack_size
-                end_debug_5:
-            
-            jmp prompt            
-        
-        inc_op_counter:
-            inc dword [ebp-4]
-
-        ;debug
-            cmp dword [debug], 0
-            je end_debug_6
-            call print_stack_size
-            end_debug_6:
-
-        jmp prompt                  ;go back to prompt and start over again
+    jmp prompt                  ;go back to prompt and start over again
 
     
 
@@ -1486,9 +1473,19 @@ print_stack:
         debug_print_pipes: DB "||", 0
 
     section .text
+
+    pushad
+    ;print newline
+    ;////////////////
+    push str_newlinw
+    push format_strln
+    call printf
+    add esp, 8
+    ;///////////////
+    popad
+    
     mov ecx, 0
 
-    
     loop_print_stack:
         mov edx, dword [stack_counter]
         cmp ecx, edx
@@ -1870,19 +1867,36 @@ debug_print_stack:
     ;****
 
     section .data
-        debug_print_stack_msg: DB "Stack:", 10 , 0
+        debug_print_stack_msg: DB "Stack: ", 0
+        debug_print_stack_msg_empty: DB "empty", 0
+
 
     section .text
-    ;*print "Stack:"
+    
+    ;*print "Stack: "
         push input
         push debug_print_stack_msg
         push dword [stderr]
         call fprintf
         add esp, 12
-
-        call print_stack
     ;*
+    
+    cmp dword [stack_counter], 0
+    je print_stack_empty
 
+    call print_stack
+    jmp end_print_stack
+
+    print_stack_empty:
+        ;*print "empty"
+            push debug_print_stack_msg_empty
+            push format_strln
+            push dword [stderr]
+            call fprintf
+            add esp, 12
+        ;*
+
+    end_print_stack:
     ;****
     mov esp, ebp
     pop ebp
@@ -1934,12 +1948,6 @@ print_stack_size:
     
     section .text
         ;*print "Stack size is %d"
-        push print_arrow
-        push format_str
-        push dword [stderr]
-        call fprintf
-        add esp, 12
-
         push dword [stack_counter]
         push debug_stack_size_msg
         push dword [stderr]

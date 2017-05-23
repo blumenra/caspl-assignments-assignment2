@@ -29,6 +29,7 @@
 ;; - imlplement feature +
 - imlplement feature r
 - imlplement feature l
+- add debug message for every result producing operation
 - free mempry of all links
 - write tests
 - remove label func_format
